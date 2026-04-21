@@ -1,8 +1,8 @@
-import Fuse from 'fuse.js'
 import { tool } from 'langchain'
 import * as z from 'zod'
 import { region } from '../../../drizzle/schema'
 import { db } from '../../db'
+import { search } from '../utils/search'
 
 export const getRegionCodeTool = tool(
   async ({ regionName }) => {
@@ -11,12 +11,7 @@ export const getRegionCodeTool = tool(
       regionName: region.regionName,
     }).from(region)
 
-    const fuse = new Fuse(regions, {
-      keys: ['regionName'],
-      threshold: 0.5,
-    })
-
-    const results = fuse.search(regionName)
+    const results = search(regions, ['regionName'], regionName)
 
     if (results.length === 0) {
       return JSON.stringify({

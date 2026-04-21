@@ -1,8 +1,8 @@
-import Fuse from 'fuse.js'
 import { tool } from 'langchain'
 import * as z from 'zod'
 import { bankCardTemplate } from '../../../drizzle/schema'
 import { db } from '../../db'
+import { search } from '../utils/search'
 
 export const getBankCardTemplateIdTool = tool(
   async ({ cardName }) => {
@@ -11,12 +11,7 @@ export const getBankCardTemplateIdTool = tool(
       cardName: bankCardTemplate.cardName,
     }).from(bankCardTemplate)
 
-    const fuse = new Fuse(templates, {
-      keys: ['cardName'],
-      threshold: 0.5,
-    })
-
-    const results = fuse.search(cardName)
+    const results = search(templates, ['cardName'], cardName)
 
     if (results.length === 0) {
       return JSON.stringify({

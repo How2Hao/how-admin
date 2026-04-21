@@ -1,8 +1,8 @@
-import Fuse from 'fuse.js'
 import { tool } from 'langchain'
 import * as z from 'zod'
 import { bank } from '../../../drizzle/schema'
 import { db } from '../../db'
+import { search } from '../utils/search'
 
 export const getBankIdTool = tool(
   async ({ bankName }) => {
@@ -12,12 +12,7 @@ export const getBankIdTool = tool(
         name: bank.name,
       }).from(bank)
 
-      const fuse = new Fuse(banks, {
-        keys: ['name'],
-        threshold: 0.3,
-      })
-
-      const results = fuse.search(bankName)
+      const results = search(banks, ['name'], bankName)
 
       if (results.length === 0) {
         return JSON.stringify({
