@@ -6,34 +6,47 @@ import { db } from '../../db'
 
 export const getBankIdTool = tool(
   async ({ bankName }) => {
-    const banks = await db.select({
-      id: bank.id,
-      name: bank.name,
-    }).from(bank)
+    try {
+      const banks = await db.select({
+        id: bank.id,
+        name: bank.name,
+      }).from(bank)
 
-    const fuse = new Fuse(banks, {
-      keys: ['name'],
-      threshold: 0.5,
-    })
-
-    const results = fuse.search(bankName)
-
-    if (results.length === 0) {
-      return JSON.stringify({
-        success: false,
-        message: `未找到银行 "${bankName}"，请检查名称后重试`,
+      const fuse = new Fuse(banks, {
+        keys: ['name'],
+        threshold: 0.3,
       })
-    }
 
-    const topMatches = results.slice(0, 3)
-    return JSON.stringify({
-      success: true,
-      matches: topMatches.map(match => ({
+      const results = fuse.search(bankName)
+
+      if (results.length === 0) {
+        return JSON.stringify({
+          success: false,
+          message: `未找到银行 "${bankName}"，请检查名称后重试`,
+        })
+      }
+
+      const topMatches = results.slice(0, 3)
+      const matches = topMatches.map(match => ({
         bankId: match.item.id,
         bankName: match.item.name,
-      })),
-      message: `找到 ${topMatches.length} 个匹配的银行，请根据实际情况选择正确的银行ID`,
-    })
+      }))
+
+      const response = JSON.stringify({
+        success: true,
+        matches,
+        message: `找到 ${matches.length} 个匹配的银行，请根据实际情况选择正确的银行ID`,
+      })
+
+      return response
+    }
+    catch (error) {
+      console.error('getBankIdTool error:', error)
+      return JSON.stringify({
+        success: false,
+        message: `搜索银行时发生错误: ${error instanceof Error ? error.message : String(error)}`,
+      })
+    }
   },
   {
     name: 'get_bank_id',

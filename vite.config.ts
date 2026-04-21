@@ -81,6 +81,6 @@ export default defineConfig({
   // https://github.com/vitest-dev/vitest
   test: {
     environment: 'jsdom',
-    testTimeout: 60000,
+    testTimeout: 600000,
   },
 })

@@ -1,5 +1,5 @@
 import type { ParserWebByURLResult } from '~~/utils/paserweb'
-import { createAgent, providerStrategy } from 'langchain'
+import { createAgent, toolStrategy } from 'langchain'
 import { buildContent } from './content/buildContent'
 import { DeepSeekModel } from './models/deepseek'
 import systemPrompt from './prompts/system.md?raw'
@@ -22,8 +22,8 @@ export async function runAgent(result: ParserWebByURLResult) {
   }
 
   const content = buildContent(markdown, ocrResults)
-  console.log(content)
 
+  // The main parser contract is one primary activity per article.
   const bankTaskAgent = createAgent({
     model: DeepSeekModel,
     systemPrompt,
@@ -32,7 +32,7 @@ export async function runAgent(result: ParserWebByURLResult) {
       getBankIdTool,
       getRegionCodeTool,
     ],
-    responseFormat: providerStrategy(BankTask),
+    responseFormat: toolStrategy(BankTask),
   })
 
   const bankTaskResult = await bankTaskAgent.invoke({
