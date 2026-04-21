@@ -1,0 +1,65 @@
+<script setup lang="ts">
+const route = useRoute()
+const activeMenu = computed(() => route.path)
+</script>
+
+<template>
+  <t-layout h-full>
+    <t-header>
+      <t-head-menu value="item1" height="120px">
+        <template #logo>
+          <div class="text-2xl font-bold">
+            How2Hao Admin
+          </div>
+        </template>
+        <!-- <t-menu-item value="item1">
+          已选内容
+        </t-menu-item> -->
+        <template #operations>
+          <div class="t-menu__operations-icon" @click="toggleDark()">
+            <div i-carbon-sun dark:i-carbon-moon />
+          </div>
+        </template>
+      </t-head-menu>
+    </t-header>
+    <t-layout>
+      <t-aside style="border-top: 1px solid var(--component-border)">
+        <t-menu :value="activeMenu" theme="light" style="margin-right: 50px" height="550px" :default-expanded="['bank-card-activities']">
+          <t-menu-item value="/" to="/">
+            <template #icon>
+              <t-icon name="dashboard" />
+            </template>
+            仪表盘
+          </t-menu-item>
+          <t-submenu value="bank-card-activities">
+            <template #icon>
+              <div i-carbon:app-connectivity mr-3 />
+            </template>
+            <template #title>
+              <span>银行卡活动</span>
+            </template>
+            <t-menu-item value="/bank-card-activities/wechat" to="/bank-card-activities/wechat">
+              <template #icon>
+                <div i-carbon:logo-wechat mr-2 />
+              </template>
+              公众号管理
+            </t-menu-item>
+            <t-menu-item value="/bank-card-activities/web" to="/bank-card-activities/web">
+              <template #icon>
+                <div i-lucide:app-window mr-2 />
+              </template>
+              网页管理
+            </t-menu-item>
+          </t-submenu>
+        </t-menu>
+      </t-aside>
+      <t-layout>
+        <Suspense>
+          <t-content font-sans p="x-4 y-10" text="center gray-700 dark:gray-200">
+            <RouterView />
+          </t-content>
+        </Suspense>
+      </t-layout>
+    </t-layout>
+  </t-layout>
+</template>
