@@ -1,17 +1,10 @@
 import { tool } from 'langchain'
 import * as z from 'zod'
-import { bankCardTemplate } from '../../../drizzle/schema'
-import { db } from '../../db'
-import { search } from '../utils/search'
+import { referenceData } from '../utils/referenceData'
 
 export const getBankCardTemplateIdTool = tool(
   async ({ cardName }) => {
-    const templates = await db.select({
-      id: bankCardTemplate.id,
-      cardName: bankCardTemplate.cardName,
-    }).from(bankCardTemplate)
-
-    const results = search(templates, ['cardName'], cardName)
+    const results = referenceData.searchTemplates(cardName)
 
     if (results.length === 0) {
       return JSON.stringify({
@@ -20,14 +13,15 @@ export const getBankCardTemplateIdTool = tool(
       })
     }
 
-    const topMatches = results.slice(0, 3)
+    const matches = results.map(match => ({
+      templateId: match.item.id,
+      cardName: match.item.cardName,
+    }))
+
     return JSON.stringify({
       success: true,
-      matches: topMatches.map(match => ({
-        templateId: match.item.id,
-        cardName: match.item.cardName,
-      })),
-      message: `找到 ${topMatches.length} 个匹配的银行卡模板，请根据实际情况选择正确的银行卡模板ID`,
+      matches,
+      message: `找到 ${matches.length} 个匹配的银行卡模板，请根据实际情况选择正确的银行卡模板ID`,
     })
   },
   {

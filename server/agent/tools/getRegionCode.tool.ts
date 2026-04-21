@@ -1,17 +1,10 @@
 import { tool } from 'langchain'
 import * as z from 'zod'
-import { region } from '../../../drizzle/schema'
-import { db } from '../../db'
-import { search } from '../utils/search'
+import { referenceData } from '../utils/referenceData'
 
 export const getRegionCodeTool = tool(
   async ({ regionName }) => {
-    const regions = await db.select({
-      regionCode: region.regionCode,
-      regionName: region.regionName,
-    }).from(region)
-
-    const results = search(regions, ['regionName'], regionName)
+    const results = referenceData.searchRegions(regionName)
 
     if (results.length === 0) {
       return JSON.stringify({
@@ -20,14 +13,15 @@ export const getRegionCodeTool = tool(
       })
     }
 
-    const topMatches = results.slice(0, 3)
+    const matches = results.map(match => ({
+      regionCode: match.item.regionCode,
+      regionName: match.item.regionName,
+    }))
+
     return JSON.stringify({
       success: true,
-      matches: topMatches.map(match => ({
-        regionCode: match.item.regionCode,
-        regionName: match.item.regionName,
-      })),
-      message: `找到 ${topMatches.length} 个匹配的区域，请根据实际情况选择正确的区域代码`,
+      matches,
+      message: `找到 ${matches.length} 个匹配的区域，请根据实际情况选择正确的区域代码`,
     })
   },
   {

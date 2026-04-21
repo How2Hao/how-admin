@@ -1,18 +1,11 @@
 import { tool } from 'langchain'
 import * as z from 'zod'
-import { bank } from '../../../drizzle/schema'
-import { db } from '../../db'
-import { search } from '../utils/search'
+import { referenceData } from '../utils/referenceData'
 
 export const getBankIdTool = tool(
   async ({ bankName }) => {
     try {
-      const banks = await db.select({
-        id: bank.id,
-        name: bank.name,
-      }).from(bank)
-
-      const results = search(banks, ['name'], bankName)
+      const results = referenceData.searchBanks(bankName)
 
       if (results.length === 0) {
         return JSON.stringify({
@@ -21,19 +14,16 @@ export const getBankIdTool = tool(
         })
       }
 
-      const topMatches = results.slice(0, 3)
-      const matches = topMatches.map(match => ({
+      const matches = results.map(match => ({
         bankId: match.item.id,
         bankName: match.item.name,
       }))
 
-      const response = JSON.stringify({
+      return JSON.stringify({
         success: true,
         matches,
         message: `找到 ${matches.length} 个匹配的银行，请根据实际情况选择正确的银行ID`,
       })
-
-      return response
     }
     catch (error) {
       console.error('getBankIdTool error:', error)
