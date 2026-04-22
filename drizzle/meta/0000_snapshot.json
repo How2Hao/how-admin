@@ -182,7 +182,7 @@
         "fk_ledger_user": {
           "name": "fk_ledger_user",
           "tableFrom": "acc_ledgers",
-          "tableTo": "acc_users",
+          "tableTo": "users",
           "columnsFrom": [
             "user_id"
           ],
@@ -190,7 +190,7 @@
             "id"
           ],
           "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "cascade"
         }
       },
       "uniqueConstraints": {},
@@ -248,13 +248,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "bank": {
-          "autoincrement": false,
-          "name": "bank",
-          "type": "varchar(50)",
-          "primaryKey": false,
-          "notNull": false
-        },
         "bank_id": {
           "autoincrement": false,
           "name": "bank_id",
@@ -269,9 +262,9 @@
           "primaryKey": false,
           "notNull": false
         },
-        "benefit_platform_id": {
+        "benefit_pay_platform_id": {
           "autoincrement": false,
-          "name": "benefit_platform_id",
+          "name": "benefit_pay_platform_id",
           "type": "int",
           "primaryKey": false,
           "notNull": false
@@ -282,13 +275,6 @@
           "type": "bigint",
           "primaryKey": false,
           "notNull": true
-        },
-        "description": {
-          "autoincrement": false,
-          "name": "description",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
         },
         "remark": {
           "autoincrement": false,
@@ -364,9 +350,37 @@
             "acc_user_id"
           ],
           "isUnique": false
+        },
+        "idx_txn_ledger_date": {
+          "name": "idx_txn_ledger_date",
+          "columns": [
+            "ledger_id",
+            "transaction_date"
+          ],
+          "isUnique": false
+        },
+        "idx_txn_benefit_pay_platform_id": {
+          "name": "idx_txn_benefit_pay_platform_id",
+          "columns": [
+            "benefit_pay_platform_id"
+          ],
+          "isUnique": false
         }
       },
       "foreignKeys": {
+        "fk_acc_txn_benefit_pay_platform": {
+          "name": "fk_acc_txn_benefit_pay_platform",
+          "tableFrom": "acc_transactions",
+          "tableTo": "benefit_pay_platform",
+          "columnsFrom": [
+            "benefit_pay_platform_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "cascade"
+        },
         "fk_txn_category": {
           "name": "fk_txn_category",
           "tableFrom": "acc_transactions",
@@ -407,24 +421,17 @@
           "primaryKey": false,
           "notNull": true
         },
+        "user_id": {
+          "autoincrement": false,
+          "name": "user_id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        },
         "username": {
           "autoincrement": false,
           "name": "username",
           "type": "varchar(50)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "email": {
-          "autoincrement": false,
-          "name": "email",
-          "type": "varchar(100)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "password_hash": {
-          "autoincrement": false,
-          "name": "password_hash",
-          "type": "varchar(255)",
           "primaryKey": false,
           "notNull": true
         },
@@ -460,19 +467,119 @@
           ]
         }
       },
-      "indexes": {},
-      "foreignKeys": {},
-      "uniqueConstraints": {
-        "uniq_username": {
-          "name": "uniq_username",
+      "indexes": {
+        "idx_acc_user_owner": {
+          "name": "idx_acc_user_owner",
           "columns": [
+            "user_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "fk_acc_user_owner_user": {
+          "name": "fk_acc_user_owner_user",
+          "tableFrom": "acc_users",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        }
+      },
+      "uniqueConstraints": {
+        "uniq_acc_user_owner_username": {
+          "name": "uniq_acc_user_owner_username",
+          "columns": [
+            "user_id",
             "username"
           ]
+        }
+      },
+      "checkConstraint": {}
+    },
+    "activity_category": {
+      "name": "activity_category",
+      "columns": {
+        "id": {
+          "autoincrement": true,
+          "name": "id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
         },
-        "uniq_email": {
-          "name": "uniq_email",
+        "code": {
+          "autoincrement": false,
+          "name": "code",
+          "type": "varchar(32)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "autoincrement": false,
+          "name": "name",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "parent_id": {
+          "autoincrement": false,
+          "name": "parent_id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "icon": {
+          "autoincrement": false,
+          "name": "icon",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sort_order": {
+          "default": 0,
+          "autoincrement": false,
+          "name": "sort_order",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "default": "((unix_timestamp() * 1000))",
+          "autoincrement": false,
+          "name": "created_at",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "compositePrimaryKeys": {
+        "activity_category_id": {
+          "name": "activity_category_id",
           "columns": [
-            "email"
+            "id"
+          ]
+        }
+      },
+      "indexes": {
+        "idx_parent": {
+          "name": "idx_parent",
+          "columns": [
+            "parent_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "uniqueConstraints": {
+        "code": {
+          "name": "code",
+          "columns": [
+            "code"
           ]
         }
       },
@@ -556,6 +663,117 @@
           "onUpdate": "no action"
         }
       },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "auth_sms_events": {
+      "name": "auth_sms_events",
+      "columns": {
+        "id": {
+          "autoincrement": true,
+          "name": "id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "phone": {
+          "autoincrement": false,
+          "name": "phone",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "scene": {
+          "autoincrement": false,
+          "name": "scene",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "provider": {
+          "autoincrement": false,
+          "name": "provider",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "provider_request_id": {
+          "autoincrement": false,
+          "name": "provider_request_id",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "action": {
+          "autoincrement": false,
+          "name": "action",
+          "type": "enum('SEND','VERIFY')",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "result": {
+          "autoincrement": false,
+          "name": "result",
+          "type": "enum('SUCCESS','FAILED','RATE_LIMITED')",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "failure_reason": {
+          "autoincrement": false,
+          "name": "failure_reason",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ip": {
+          "autoincrement": false,
+          "name": "ip",
+          "type": "varchar(64)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "user_agent": {
+          "autoincrement": false,
+          "name": "user_agent",
+          "type": "varchar(500)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "autoincrement": false,
+          "name": "created_at",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "compositePrimaryKeys": {
+        "auth_sms_events_id": {
+          "name": "auth_sms_events_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "indexes": {
+        "idx_auth_sms_event_phone_scene_created_at": {
+          "name": "idx_auth_sms_event_phone_scene_created_at",
+          "columns": [
+            "phone",
+            "scene",
+            "created_at"
+          ],
+          "isUnique": false
+        },
+        "idx_auth_sms_event_provider_request": {
+          "name": "idx_auth_sms_event_provider_request",
+          "columns": [
+            "provider_request_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
       "uniqueConstraints": {},
       "checkConstraint": {}
     },
@@ -669,6 +887,13 @@
         "id": {
           "autoincrement": true,
           "name": "id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "autoincrement": false,
+          "name": "user_id",
           "type": "int",
           "primaryKey": false,
           "notNull": true
@@ -881,9 +1106,29 @@
             "bank_id"
           ],
           "isUnique": false
+        },
+        "idx_bank_card_user_id": {
+          "name": "idx_bank_card_user_id",
+          "columns": [
+            "user_id"
+          ],
+          "isUnique": false
         }
       },
       "foreignKeys": {
+        "fk_bank_card_user": {
+          "name": "fk_bank_card_user",
+          "tableFrom": "bank_card",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        },
         "fk_template_id": {
           "name": "fk_template_id",
           "tableFrom": "bank_card",
@@ -1223,8 +1468,8 @@
       "uniqueConstraints": {},
       "checkConstraint": {}
     },
-    "benefit_platform": {
-      "name": "benefit_platform",
+    "benefit_pay_platform": {
+      "name": "benefit_pay_platform",
       "columns": {
         "id": {
           "autoincrement": true,
@@ -1264,8 +1509,76 @@
         }
       },
       "compositePrimaryKeys": {
-        "benefit_platform_id": {
-          "name": "benefit_platform_id",
+        "benefit_pay_platform_id": {
+          "name": "benefit_pay_platform_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "uniqueConstraints": {
+        "code": {
+          "name": "code",
+          "columns": [
+            "code"
+          ]
+        }
+      },
+      "checkConstraint": {}
+    },
+    "benefit_usage_platform": {
+      "name": "benefit_usage_platform",
+      "columns": {
+        "id": {
+          "autoincrement": true,
+          "name": "id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "code": {
+          "autoincrement": false,
+          "name": "code",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "autoincrement": false,
+          "name": "name",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "icon": {
+          "autoincrement": false,
+          "name": "icon",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sort_order": {
+          "default": 0,
+          "autoincrement": false,
+          "name": "sort_order",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "default": "(CURRENT_TIMESTAMP)",
+          "autoincrement": false,
+          "name": "created_at",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "compositePrimaryKeys": {
+        "benefit_usage_platform_id": {
+          "name": "benefit_usage_platform_id",
           "columns": [
             "id"
           ]
@@ -1343,6 +1656,28 @@
           "autoincrement": false,
           "name": "logo",
           "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "supported_card_types": {
+          "autoincrement": false,
+          "name": "supported_card_types",
+          "type": "varchar(64)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "member_org_ids": {
+          "autoincrement": false,
+          "name": "member_org_ids",
+          "type": "varchar(64)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "default": "'ENABLED'",
+          "autoincrement": false,
+          "name": "status",
+          "type": "varchar(16)",
           "primaryKey": false,
           "notNull": true
         }
@@ -1431,6 +1766,13 @@
           "primaryKey": false,
           "notNull": true
         },
+        "user_id": {
+          "autoincrement": false,
+          "name": "user_id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        },
         "title": {
           "autoincrement": false,
           "name": "title",
@@ -1489,35 +1831,6 @@
           "type": "enum('PENDING','EXPIRED','COMPLETED')",
           "primaryKey": false,
           "notNull": true
-        },
-        "region_type": {
-          "default": "'NATIONWIDE'",
-          "autoincrement": false,
-          "name": "region_type",
-          "type": "enum('NATIONWIDE','REGIONAL')",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "region_code": {
-          "autoincrement": false,
-          "name": "region_code",
-          "type": "varchar(20)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "region_province_name": {
-          "autoincrement": false,
-          "name": "region_province_name",
-          "type": "varchar(50)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "region_city_name": {
-          "autoincrement": false,
-          "name": "region_city_name",
-          "type": "varchar(50)",
-          "primaryKey": false,
-          "notNull": false
         },
         "bank_id": {
           "autoincrement": false,
@@ -1582,9 +1895,9 @@
           "primaryKey": false,
           "notNull": false
         },
-        "benefit_platform_id": {
+        "benefit_pay_platform_id": {
           "autoincrement": false,
-          "name": "benefit_platform_id",
+          "name": "benefit_pay_platform_id",
           "type": "int",
           "primaryKey": false,
           "notNull": false
@@ -1620,8 +1933,30 @@
           ]
         }
       },
-      "indexes": {},
-      "foreignKeys": {},
+      "indexes": {
+        "idx_task_user_id": {
+          "name": "idx_task_user_id",
+          "columns": [
+            "user_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "fk_task_user": {
+          "name": "fk_task_user",
+          "tableFrom": "task",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        }
+      },
       "uniqueConstraints": {},
       "checkConstraint": {}
     },
@@ -1861,10 +2196,24 @@
           "primaryKey": false,
           "notNull": true
         },
-        "description": {
+        "rule_brief": {
           "autoincrement": false,
-          "name": "description",
+          "name": "rule_brief",
+          "type": "varchar(500)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "rule_detail": {
+          "autoincrement": false,
+          "name": "rule_detail",
           "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "rule_source": {
+          "autoincrement": false,
+          "name": "rule_source",
+          "type": "json",
           "primaryKey": false,
           "notNull": false
         },
@@ -1913,9 +2262,9 @@
         "region_code": {
           "autoincrement": false,
           "name": "region_code",
-          "type": "varchar(255)",
+          "type": "varchar(20)",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "region_match_strategy": {
           "autoincrement": false,
@@ -1931,34 +2280,6 @@
           "type": "enum('ONE_TIME','DAILY','WEEKLY','MONTHLY','YEARLY')",
           "primaryKey": false,
           "notNull": true
-        },
-        "days_of_week": {
-          "autoincrement": false,
-          "name": "days_of_week",
-          "type": "varchar(50)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "days_of_month": {
-          "autoincrement": false,
-          "name": "days_of_month",
-          "type": "varchar(200)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "yearly_months": {
-          "autoincrement": false,
-          "name": "yearly_months",
-          "type": "varchar(100)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "yearly_days_of_month": {
-          "autoincrement": false,
-          "name": "yearly_days_of_month",
-          "type": "varchar(200)",
-          "primaryKey": false,
-          "notNull": false
         },
         "reminder_time": {
           "autoincrement": false,
@@ -1981,6 +2302,34 @@
           "primaryKey": false,
           "notNull": false
         },
+        "days_of_week": {
+          "autoincrement": false,
+          "name": "days_of_week",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "yearly_months": {
+          "autoincrement": false,
+          "name": "yearly_months",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "days_of_month": {
+          "autoincrement": false,
+          "name": "days_of_month",
+          "type": "varchar(200)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "yearly_days_of_month": {
+          "autoincrement": false,
+          "name": "yearly_days_of_month",
+          "type": "varchar(200)",
+          "primaryKey": false,
+          "notNull": false
+        },
         "frequency_control": {
           "autoincrement": false,
           "name": "frequency_control",
@@ -1995,13 +2344,6 @@
           "type": "tinyint",
           "primaryKey": false,
           "notNull": true
-        },
-        "advance_reminder_minutes": {
-          "autoincrement": false,
-          "name": "advance_reminder_minutes",
-          "type": "smallint",
-          "primaryKey": false,
-          "notNull": false
         },
         "is_completed": {
           "default": 0,
@@ -2019,21 +2361,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "created_at": {
-          "autoincrement": false,
-          "name": "created_at",
-          "type": "bigint",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "region_type": {
-          "default": "'NATIONWIDE'",
-          "autoincrement": false,
-          "name": "region_type",
-          "type": "enum('NATIONWIDE','REGIONAL')",
-          "primaryKey": false,
-          "notNull": true
-        },
         "benefit_category_id": {
           "autoincrement": false,
           "name": "benefit_category_id",
@@ -2048,41 +2375,33 @@
           "primaryKey": false,
           "notNull": false
         },
-        "benefit_voucher_description": {
+        "benefit_description": {
           "autoincrement": false,
-          "name": "benefit_voucher_description",
+          "name": "benefit_description",
           "type": "varchar(500)",
           "primaryKey": false,
           "notNull": false
         },
-        "benefit_platform_id": {
+        "benefit_pay_platform_id": {
           "autoincrement": false,
-          "name": "benefit_platform_id",
+          "name": "benefit_pay_platform_id",
           "type": "int",
           "primaryKey": false,
           "notNull": false
         },
-        "activity_tag_code": {
+        "benefit_usage_platform_id": {
           "autoincrement": false,
-          "name": "activity_tag_code",
-          "type": "varchar(32)",
+          "name": "benefit_usage_platform_id",
+          "type": "int",
           "primaryKey": false,
           "notNull": false
         },
-        "offer_summary_text": {
+        "activity_category_id": {
           "autoincrement": false,
-          "name": "offer_summary_text",
-          "type": "varchar(500)",
+          "name": "activity_category_id",
+          "type": "int",
           "primaryKey": false,
           "notNull": false
-        },
-        "updated_at": {
-          "default": "(CURRENT_TIMESTAMP)",
-          "autoincrement": false,
-          "name": "updated_at",
-          "type": "datetime",
-          "primaryKey": false,
-          "notNull": true
         },
         "publisher": {
           "autoincrement": false,
@@ -2094,7 +2413,7 @@
         "publish_time": {
           "autoincrement": false,
           "name": "publish_time",
-          "type": "datetime(6)",
+          "type": "varchar(200)",
           "primaryKey": false,
           "notNull": false
         },
@@ -2114,13 +2433,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "task_type": {
-          "autoincrement": false,
-          "name": "task_type",
-          "type": "varchar(64)",
-          "primaryKey": false,
-          "notNull": false
-        },
         "participation_difficulty": {
           "autoincrement": false,
           "name": "participation_difficulty",
@@ -2135,13 +2447,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "guide_type": {
-          "autoincrement": false,
-          "name": "guide_type",
-          "type": "varchar(16)",
-          "primaryKey": false,
-          "notNull": false
-        },
         "guide_text": {
           "autoincrement": false,
           "name": "guide_text",
@@ -2149,19 +2454,20 @@
           "primaryKey": false,
           "notNull": false
         },
-        "guide_url": {
+        "created_at": {
           "autoincrement": false,
-          "name": "guide_url",
-          "type": "varchar(500)",
+          "name": "created_at",
+          "type": "bigint",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
-        "detailed_rule": {
+        "updated_at": {
+          "default": "(CURRENT_TIMESTAMP)",
           "autoincrement": false,
-          "name": "detailed_rule",
-          "type": "text",
+          "name": "updated_at",
+          "type": "datetime",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         }
       },
       "compositePrimaryKeys": {
@@ -2173,10 +2479,10 @@
         }
       },
       "indexes": {
-        "idx_task_template_activity_tag_code": {
-          "name": "idx_task_template_activity_tag_code",
+        "idx_activity_category": {
+          "name": "idx_activity_category",
           "columns": [
-            "activity_tag_code"
+            "activity_category_id"
           ],
           "isUnique": false
         }
@@ -2242,13 +2548,401 @@
           "isUnique": false
         }
       },
-      "foreignKeys": {},
+      "foreignKeys": {
+        "fk_task_template_like_user": {
+          "name": "fk_task_template_like_user",
+          "tableFrom": "task_template_like",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        }
+      },
       "uniqueConstraints": {
         "uniq_task_template_like_user": {
           "name": "uniq_task_template_like_user",
           "columns": [
             "task_template_id",
             "user_id"
+          ]
+        }
+      },
+      "checkConstraint": {}
+    },
+    "user_identities": {
+      "name": "user_identities",
+      "columns": {
+        "id": {
+          "autoincrement": true,
+          "name": "id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "autoincrement": false,
+          "name": "user_id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "provider": {
+          "autoincrement": false,
+          "name": "provider",
+          "type": "enum('PHONE_SMS','APPLE','WECHAT')",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "provider_uid": {
+          "autoincrement": false,
+          "name": "provider_uid",
+          "type": "varchar(191)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "app_id": {
+          "autoincrement": false,
+          "name": "app_id",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "unionid": {
+          "autoincrement": false,
+          "name": "unionid",
+          "type": "varchar(191)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "openid": {
+          "autoincrement": false,
+          "name": "openid",
+          "type": "varchar(191)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "autoincrement": false,
+          "name": "created_at",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updated_at": {
+          "autoincrement": false,
+          "name": "updated_at",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "compositePrimaryKeys": {
+        "user_identities_id": {
+          "name": "user_identities_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "indexes": {
+        "idx_user_identity_user_id": {
+          "name": "idx_user_identity_user_id",
+          "columns": [
+            "user_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "fk_user_identity_user": {
+          "name": "fk_user_identity_user",
+          "tableFrom": "user_identities",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        }
+      },
+      "uniqueConstraints": {
+        "uniq_user_identity_provider_uid": {
+          "name": "uniq_user_identity_provider_uid",
+          "columns": [
+            "provider",
+            "provider_uid"
+          ]
+        },
+        "uniq_user_identity_wechat_app_openid": {
+          "name": "uniq_user_identity_wechat_app_openid",
+          "columns": [
+            "provider",
+            "app_id",
+            "openid"
+          ]
+        }
+      },
+      "checkConstraint": {}
+    },
+    "user_sessions": {
+      "name": "user_sessions",
+      "columns": {
+        "id": {
+          "autoincrement": true,
+          "name": "id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "autoincrement": false,
+          "name": "user_id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "refresh_token": {
+          "autoincrement": false,
+          "name": "refresh_token",
+          "type": "varchar(128)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "expires_at": {
+          "autoincrement": false,
+          "name": "expires_at",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "revoked_at": {
+          "autoincrement": false,
+          "name": "revoked_at",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ip": {
+          "autoincrement": false,
+          "name": "ip",
+          "type": "varchar(64)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "user_agent": {
+          "autoincrement": false,
+          "name": "user_agent",
+          "type": "varchar(500)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "autoincrement": false,
+          "name": "created_at",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updated_at": {
+          "autoincrement": false,
+          "name": "updated_at",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "last_used_at": {
+          "autoincrement": false,
+          "name": "last_used_at",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "compositePrimaryKeys": {
+        "user_sessions_id": {
+          "name": "user_sessions_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "indexes": {
+        "idx_user_session_user_id": {
+          "name": "idx_user_session_user_id",
+          "columns": [
+            "user_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "fk_user_session_user": {
+          "name": "fk_user_session_user",
+          "tableFrom": "user_sessions",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        }
+      },
+      "uniqueConstraints": {
+        "uniq_user_session_refresh_token": {
+          "name": "uniq_user_session_refresh_token",
+          "columns": [
+            "refresh_token"
+          ]
+        }
+      },
+      "checkConstraint": {}
+    },
+    "user_uid_sequence": {
+      "name": "user_uid_sequence",
+      "columns": {
+        "id": {
+          "autoincrement": false,
+          "name": "id",
+          "type": "tinyint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "next_val": {
+          "default": 0,
+          "autoincrement": false,
+          "name": "next_val",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updated_at": {
+          "autoincrement": false,
+          "name": "updated_at",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "compositePrimaryKeys": {
+        "user_uid_sequence_id": {
+          "name": "user_uid_sequence_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "users": {
+      "name": "users",
+      "columns": {
+        "id": {
+          "autoincrement": true,
+          "name": "id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "uid6": {
+          "autoincrement": false,
+          "name": "uid6",
+          "type": "char(6)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "phone": {
+          "autoincrement": false,
+          "name": "phone",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "phone_verified_at": {
+          "autoincrement": false,
+          "name": "phone_verified_at",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "username": {
+          "autoincrement": false,
+          "name": "username",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "avatar": {
+          "autoincrement": false,
+          "name": "avatar",
+          "type": "varchar(500)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "default": "'ACTIVE'",
+          "autoincrement": false,
+          "name": "status",
+          "type": "enum('ACTIVE','PENDING_BIND','DISABLED')",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "autoincrement": false,
+          "name": "created_at",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updated_at": {
+          "autoincrement": false,
+          "name": "updated_at",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "last_login_at": {
+          "autoincrement": false,
+          "name": "last_login_at",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "compositePrimaryKeys": {
+        "users_id": {
+          "name": "users_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "uniqueConstraints": {
+        "uniq_users_uid6": {
+          "name": "uniq_users_uid6",
+          "columns": [
+            "uid6"
+          ]
+        },
+        "uniq_users_phone": {
+          "name": "uniq_users_phone",
+          "columns": [
+            "phone"
           ]
         }
       },
@@ -2263,12 +2957,26 @@
   },
   "internal": {
     "tables": {
+      "activity_category": {
+        "columns": {
+          "created_at": {
+            "isDefaultAnExpression": true
+          }
+        }
+      },
       "bank": {
         "columns": {
           "created_at": {
             "isDefaultAnExpression": true
           },
           "updated_at": {
+            "isDefaultAnExpression": true
+          }
+        }
+      },
+      "benefit_usage_platform": {
+        "columns": {
+          "created_at": {
             "isDefaultAnExpression": true
           }
         }

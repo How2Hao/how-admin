@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm'
-import { AnyMySqlColumn, bigint, char, datetime, decimal, double, foreignKey, index, int, mysqlEnum, mysqlSchema, mysqlTable, primaryKey, smallint, text, tinyint, unique, varchar } from 'drizzle-orm/mysql-core'
+import { bigint, char, datetime, decimal, double, index, int, json, mysqlEnum, mysqlTable, primaryKey, smallint, text, tinyint, unique, varchar } from 'drizzle-orm/mysql-core'
 
 export const accCategories = mysqlTable('acc_categories', {
   id: int().autoincrement().notNull(),
@@ -15,23 +15,26 @@ export const accCategories = mysqlTable('acc_categories', {
   primaryKey({ columns: [table.id], name: 'acc_categories_id' }),
 ])
 
-export const accUsers = mysqlTable('acc_users', {
+export const users = mysqlTable('users', {
   id: int().autoincrement().notNull(),
-  username: varchar({ length: 50 }).notNull(),
-  email: varchar({ length: 100 }).notNull(),
-  passwordHash: varchar('password_hash', { length: 255 }).notNull(),
+  uid6: char({ length: 6 }).notNull(),
+  phone: varchar({ length: 20 }),
+  phoneVerifiedAt: bigint('phone_verified_at', { mode: 'number' }),
+  username: varchar({ length: 100 }).notNull(),
   avatar: varchar({ length: 500 }),
+  status: mysqlEnum(['ACTIVE', 'PENDING_BIND', 'DISABLED']).default('ACTIVE').notNull(),
   createdAt: bigint('created_at', { mode: 'number' }).notNull(),
   updatedAt: bigint('updated_at', { mode: 'number' }).notNull(),
+  lastLoginAt: bigint('last_login_at', { mode: 'number' }),
 }, table => [
-  primaryKey({ columns: [table.id], name: 'acc_users_id' }),
-  unique('uniq_username').on(table.username),
-  unique('uniq_email').on(table.email),
+  primaryKey({ columns: [table.id], name: 'users_id' }),
+  unique('uniq_users_uid6').on(table.uid6),
+  unique('uniq_users_phone').on(table.phone),
 ])
 
 export const accLedgers = mysqlTable('acc_ledgers', {
   id: int().autoincrement().notNull(),
-  userId: int('user_id').notNull().references(() => accUsers.id, { onDelete: 'cascade' }),
+  userId: int('user_id').notNull().references(() => users.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
   name: varchar({ length: 100 }).notNull(),
   description: text(),
   icon: varchar({ length: 20 }),
@@ -44,6 +47,17 @@ export const accLedgers = mysqlTable('acc_ledgers', {
   primaryKey({ columns: [table.id], name: 'acc_ledgers_id' }),
 ])
 
+export const benefitPayPlatform = mysqlTable('benefit_pay_platform', {
+  id: int().autoincrement().notNull(),
+  code: varchar({ length: 50 }).notNull(),
+  name: varchar({ length: 50 }).notNull(),
+  icon: varchar({ length: 255 }),
+  sortOrder: int('sort_order').default(0).notNull(),
+}, table => [
+  primaryKey({ columns: [table.id], name: 'benefit_pay_platform_id' }),
+  unique('code').on(table.code),
+])
+
 export const accTransactions = mysqlTable('acc_transactions', {
   id: int().autoincrement().notNull(),
   ledgerId: int('ledger_id').notNull().references(() => accLedgers.id, { onDelete: 'cascade' }),
@@ -52,12 +66,10 @@ export const accTransactions = mysqlTable('acc_transactions', {
   type: mysqlEnum(['INCOME', 'EXPENSE']).notNull(),
   amount: decimal({ precision: 15, scale: 2 }).notNull(),
   account: varchar({ length: 50 }),
-  bank: varchar({ length: 50 }),
   bankId: varchar('bank_id', { length: 50 }),
   bankCardId: int('bank_card_id'),
-  benefitPlatformId: int('benefit_platform_id'),
+  benefitPayPlatformId: int('benefit_pay_platform_id').references(() => benefitPayPlatform.id, { onDelete: 'set null', onUpdate: 'cascade' }),
   transactionDate: bigint('transaction_date', { mode: 'number' }).notNull(),
-  description: text(),
   remark: varchar({ length: 500 }),
   createdAt: bigint('created_at', { mode: 'number' }).notNull(),
   updatedAt: bigint('updated_at', { mode: 'number' }).notNull(),
@@ -68,7 +80,36 @@ export const accTransactions = mysqlTable('acc_transactions', {
   index('idx_txn_date').on(table.transactionDate),
   index('idx_related_income_id').on(table.relatedIncomeId),
   index('idx_acc_transactions_acc_user_id').on(table.accUserId),
+  index('idx_txn_ledger_date').on(table.ledgerId, table.transactionDate),
+  index('idx_txn_benefit_pay_platform_id').on(table.benefitPayPlatformId),
   primaryKey({ columns: [table.id], name: 'acc_transactions_id' }),
+])
+
+export const accUsers = mysqlTable('acc_users', {
+  id: int().autoincrement().notNull(),
+  userId: int('user_id').notNull().references(() => users.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
+  username: varchar({ length: 50 }).notNull(),
+  avatar: varchar({ length: 500 }),
+  createdAt: bigint('created_at', { mode: 'number' }).notNull(),
+  updatedAt: bigint('updated_at', { mode: 'number' }).notNull(),
+}, table => [
+  index('idx_acc_user_owner').on(table.userId),
+  primaryKey({ columns: [table.id], name: 'acc_users_id' }),
+  unique('uniq_acc_user_owner_username').on(table.userId, table.username),
+])
+
+export const activityCategory = mysqlTable('activity_category', {
+  id: int().autoincrement().notNull(),
+  code: varchar({ length: 32 }).notNull(),
+  name: varchar({ length: 50 }).notNull(),
+  parentId: int('parent_id'),
+  icon: varchar({ length: 255 }),
+  sortOrder: int('sort_order').default(0),
+  createdAt: bigint('created_at', { mode: 'number' }).default(sql`((unix_timestamp() * 1000))`).notNull(),
+}, table => [
+  index('idx_parent').on(table.parentId),
+  primaryKey({ columns: [table.id], name: 'activity_category_id' }),
+  unique('code').on(table.code),
 ])
 
 export const bank = mysqlTable('bank', {
@@ -100,6 +141,24 @@ export const app = mysqlTable('app', {
   primaryKey({ columns: [table.id], name: 'app_id' }),
 ])
 
+export const authSmsEvents = mysqlTable('auth_sms_events', {
+  id: bigint({ mode: 'number' }).autoincrement().notNull(),
+  phone: varchar({ length: 20 }).notNull(),
+  scene: varchar({ length: 50 }).notNull(),
+  provider: varchar({ length: 50 }).notNull(),
+  providerRequestId: varchar('provider_request_id', { length: 100 }),
+  action: mysqlEnum(['SEND', 'VERIFY']).notNull(),
+  result: mysqlEnum(['SUCCESS', 'FAILED', 'RATE_LIMITED']).notNull(),
+  failureReason: varchar('failure_reason', { length: 255 }),
+  ip: varchar({ length: 64 }),
+  userAgent: varchar('user_agent', { length: 500 }),
+  createdAt: bigint('created_at', { mode: 'number' }).notNull(),
+}, table => [
+  index('idx_auth_sms_event_phone_scene_created_at').on(table.phone, table.scene, table.createdAt),
+  index('idx_auth_sms_event_provider_request').on(table.providerRequestId),
+  primaryKey({ columns: [table.id], name: 'auth_sms_events_id' }),
+])
+
 export const bankCardTemplate = mysqlTable('bank_card_template', {
   id: int().autoincrement().notNull(),
   bankId: varchar('bank_id', { length: 50 }).notNull(),
@@ -128,6 +187,7 @@ export const bankCardTemplate = mysqlTable('bank_card_template', {
 
 export const bankCard = mysqlTable('bank_card', {
   id: int().autoincrement().notNull(),
+  userId: int('user_id').notNull().references(() => users.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
   bankId: varchar('bank_id', { length: 50 }).default('').notNull(),
   cardName: varchar('card_name', { length: 255 }),
   cardLevel: varchar('card_level', { length: 255 }),
@@ -157,6 +217,7 @@ export const bankCard = mysqlTable('bank_card', {
   templateId: int('template_id').references(() => bankCardTemplate.id),
 }, table => [
   index('FK_8f2b7ce439989da5dba4c6cc9de').on(table.bankId),
+  index('idx_bank_card_user_id').on(table.userId),
   primaryKey({ columns: [table.id], name: 'bank_card_id' }),
 ])
 
@@ -187,14 +248,15 @@ export const benefitCategory = mysqlTable('benefit_category', {
   primaryKey({ columns: [table.id], name: 'benefit_category_id' }),
 ])
 
-export const benefitPlatform = mysqlTable('benefit_platform', {
+export const benefitUsagePlatform = mysqlTable('benefit_usage_platform', {
   id: int().autoincrement().notNull(),
   code: varchar({ length: 50 }).notNull(),
   name: varchar({ length: 50 }).notNull(),
   icon: varchar({ length: 255 }),
-  sortOrder: int('sort_order').default(0).notNull(),
+  sortOrder: int('sort_order').default(0),
+  createdAt: datetime('created_at', { mode: 'string' }).default(sql`(CURRENT_TIMESTAMP)`),
 }, table => [
-  primaryKey({ columns: [table.id], name: 'benefit_platform_id' }),
+  primaryKey({ columns: [table.id], name: 'benefit_usage_platform_id' }),
   unique('code').on(table.code),
 ])
 
@@ -210,6 +272,9 @@ export const cardOrganization = mysqlTable('card_organization', {
   id: int().autoincrement().notNull(),
   name: varchar({ length: 100 }).notNull(),
   logo: varchar({ length: 255 }).default('').notNull(),
+  supportedCardTypes: varchar('supported_card_types', { length: 64 }),
+  memberOrgIds: varchar('member_org_ids', { length: 64 }),
+  status: varchar({ length: 16 }).default('ENABLED').notNull(),
 }, table => [
   primaryKey({ columns: [table.id], name: 'card_organization_id' }),
 ])
@@ -227,6 +292,7 @@ export const region = mysqlTable('region', {
 
 export const task = mysqlTable('task', {
   id: int().autoincrement().notNull(),
+  userId: int('user_id').notNull().references(() => users.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
   title: varchar({ length: 200 }).notNull(),
   description: text(),
   date: bigint({ mode: 'number' }),
@@ -235,10 +301,6 @@ export const task = mysqlTable('task', {
   highPriority: tinyint('high_priority').default(0).notNull(),
   advanceReminderMinutes: smallint('advance_reminder_minutes'),
   status: mysqlEnum(['PENDING', 'EXPIRED', 'COMPLETED']).default('PENDING').notNull(),
-  regionType: mysqlEnum('region_type', ['NATIONWIDE', 'REGIONAL']).default('NATIONWIDE').notNull(),
-  regionCode: varchar('region_code', { length: 20 }),
-  regionProvinceName: varchar('region_province_name', { length: 50 }),
-  regionCityName: varchar('region_city_name', { length: 50 }),
   bankId: varchar('bank_id', { length: 50 }),
   bankCardId: int('bank_card_id'),
   bankCardType: varchar('bank_card_type', { length: 255 }),
@@ -248,11 +310,12 @@ export const task = mysqlTable('task', {
   benefitCategoryId: int('benefit_category_id'),
   benefitAmount: decimal('benefit_amount', { precision: 10, scale: 2 }),
   benefitVoucherDescription: varchar('benefit_voucher_description', { length: 500 }),
-  benefitPlatformId: int('benefit_platform_id'),
+  benefitPayPlatformId: int('benefit_pay_platform_id'),
   frequencyControl: varchar('frequency_control', { length: 100 }),
   createdAt: bigint('created_at', { mode: 'number' }).notNull(),
   updatedAt: datetime('updated_at', { mode: 'string' }).default(sql`(CURRENT_TIMESTAMP)`).notNull(),
 }, table => [
+  index('idx_task_user_id').on(table.userId),
   primaryKey({ columns: [table.id], name: 'task_id' }),
 ])
 
@@ -294,61 +357,99 @@ export const taskRecurringOccurrence = mysqlTable('task_recurring_occurrence', {
 export const taskTemplate = mysqlTable('task_template', {
   id: int().autoincrement().notNull(),
   title: varchar({ length: 200 }).notNull(),
-  description: text(),
+  ruleBrief: varchar('rule_brief', { length: 500 }),
+  ruleDetail: text('rule_detail'),
+  ruleSource: json('rule_source'),
   date: bigint({ mode: 'number' }),
   bankId: int('bank_id').notNull(),
   bankCardOrganization: varchar('bank_card_organization', { length: 255 }),
   bankCardTemplateId: int('bank_card_template_id'),
   bankCardType: varchar('bank_card_type', { length: 255 }),
   bankCardLevel: int('bank_card_level'),
-  regionCode: varchar('region_code', { length: 255 }),
+  regionCode: varchar('region_code', { length: 20 }).notNull(),
   regionMatchStrategy: varchar('region_match_strategy', { length: 255 }),
   repeatType: mysqlEnum('repeat_type', ['ONE_TIME', 'DAILY', 'WEEKLY', 'MONTHLY', 'YEARLY']).default('ONE_TIME').notNull(),
-  daysOfWeek: varchar('days_of_week', { length: 50 }),
-  daysOfMonth: varchar('days_of_month', { length: 200 }),
-  yearlyMonths: varchar('yearly_months', { length: 100 }),
-  yearlyDaysOfMonth: varchar('yearly_days_of_month', { length: 200 }),
   reminderTime: varchar('reminder_time', { length: 10 }),
   startDate: bigint('start_date', { mode: 'number' }),
   endDate: bigint('end_date', { mode: 'number' }),
+  daysOfWeek: varchar('days_of_week', { length: 50 }),
+  yearlyMonths: varchar('yearly_months', { length: 100 }),
+  daysOfMonth: varchar('days_of_month', { length: 200 }),
+  yearlyDaysOfMonth: varchar('yearly_days_of_month', { length: 200 }),
   frequencyControl: varchar('frequency_control', { length: 100 }),
   highPriority: tinyint('high_priority').default(0).notNull(),
-  advanceReminderMinutes: smallint('advance_reminder_minutes'),
   isCompleted: tinyint('is_completed').default(0).notNull(),
   status: mysqlEnum(['PENDING', 'EXPIRED', 'COMPLETED']).default('PENDING').notNull(),
-  createdAt: bigint('created_at', { mode: 'number' }).notNull(),
-  regionType: mysqlEnum('region_type', ['NATIONWIDE', 'REGIONAL']).default('NATIONWIDE').notNull(),
   benefitCategoryId: int('benefit_category_id'),
   benefitAmount: decimal('benefit_amount', { precision: 10, scale: 2 }),
-  benefitVoucherDescription: varchar('benefit_voucher_description', { length: 500 }),
-  benefitPlatformId: int('benefit_platform_id'),
-  activityTagCode: varchar('activity_tag_code', { length: 32 }),
-  offerSummaryText: varchar('offer_summary_text', { length: 500 }),
-  updatedAt: datetime('updated_at', { mode: 'string' }).default(sql`(CURRENT_TIMESTAMP)`).notNull(),
+  benefitDescription: varchar('benefit_description', { length: 500 }),
+  benefitPayPlatformId: int('benefit_pay_platform_id'),
+  benefitUsagePlatformId: int('benefit_usage_platform_id'),
+  activityCategoryId: int('activity_category_id'),
   publisher: varchar({ length: 255 }),
-  publishTime: datetime('publish_time', { mode: 'string', fsp: 6 }),
+  publishTime: varchar('publish_time', { length: 200 }),
   likes: int().default(0),
   addCount: int('add_count').default(0),
-  taskType: varchar('task_type', { length: 64 }),
   participationDifficulty: varchar('participation_difficulty', { length: 16 }),
   extraConditionsText: text('extra_conditions_text'),
-  guideType: varchar('guide_type', { length: 16 }),
   guideText: text('guide_text'),
-  guideUrl: varchar('guide_url', { length: 500 }),
-  detailedRule: text('detailed_rule'),
+  createdAt: bigint('created_at', { mode: 'number' }).notNull(),
+  updatedAt: datetime('updated_at', { mode: 'string' }).default(sql`(CURRENT_TIMESTAMP)`).notNull(),
 }, table => [
-  index('idx_task_template_activity_tag_code').on(table.activityTagCode),
+  index('idx_activity_category').on(table.activityCategoryId),
   primaryKey({ columns: [table.id], name: 'task_template_id' }),
 ])
 
 export const taskTemplateLike = mysqlTable('task_template_like', {
   id: int().autoincrement().notNull(),
   taskTemplateId: int('task_template_id').notNull(),
-  userId: int('user_id').notNull(),
+  userId: int('user_id').notNull().references(() => users.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
   createdAt: bigint('created_at', { mode: 'number' }).notNull(),
 }, table => [
   index('idx_task_template_like_template_id').on(table.taskTemplateId),
   index('idx_task_template_like_user_id').on(table.userId),
   primaryKey({ columns: [table.id], name: 'task_template_like_id' }),
   unique('uniq_task_template_like_user').on(table.taskTemplateId, table.userId),
+])
+
+export const userIdentities = mysqlTable('user_identities', {
+  id: int().autoincrement().notNull(),
+  userId: int('user_id').notNull().references(() => users.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
+  provider: mysqlEnum(['PHONE_SMS', 'APPLE', 'WECHAT']).notNull(),
+  providerUid: varchar('provider_uid', { length: 191 }).notNull(),
+  appId: varchar('app_id', { length: 100 }),
+  unionid: varchar({ length: 191 }),
+  openid: varchar({ length: 191 }),
+  createdAt: bigint('created_at', { mode: 'number' }).notNull(),
+  updatedAt: bigint('updated_at', { mode: 'number' }).notNull(),
+}, table => [
+  index('idx_user_identity_user_id').on(table.userId),
+  primaryKey({ columns: [table.id], name: 'user_identities_id' }),
+  unique('uniq_user_identity_provider_uid').on(table.provider, table.providerUid),
+  unique('uniq_user_identity_wechat_app_openid').on(table.provider, table.appId, table.openid),
+])
+
+export const userSessions = mysqlTable('user_sessions', {
+  id: int().autoincrement().notNull(),
+  userId: int('user_id').notNull().references(() => users.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
+  refreshToken: varchar('refresh_token', { length: 128 }).notNull(),
+  expiresAt: bigint('expires_at', { mode: 'number' }).notNull(),
+  revokedAt: bigint('revoked_at', { mode: 'number' }),
+  ip: varchar({ length: 64 }),
+  userAgent: varchar('user_agent', { length: 500 }),
+  createdAt: bigint('created_at', { mode: 'number' }).notNull(),
+  updatedAt: bigint('updated_at', { mode: 'number' }).notNull(),
+  lastUsedAt: bigint('last_used_at', { mode: 'number' }).notNull(),
+}, table => [
+  index('idx_user_session_user_id').on(table.userId),
+  primaryKey({ columns: [table.id], name: 'user_sessions_id' }),
+  unique('uniq_user_session_refresh_token').on(table.refreshToken),
+])
+
+export const userUidSequence = mysqlTable('user_uid_sequence', {
+  id: tinyint().notNull(),
+  nextVal: bigint('next_val', { mode: 'number' }).notNull(),
+  updatedAt: bigint('updated_at', { mode: 'number' }).notNull(),
+}, table => [
+  primaryKey({ columns: [table.id], name: 'user_uid_sequence_id' }),
 ])
