@@ -310,6 +310,9 @@ declare global {
   export type { Component, Slot, Slots, ComponentPublicInstance, ComputedRef, DirectiveBinding, ExtractDefaultPropTypes, ExtractPropTypes, ExtractPublicPropTypes, InjectionKey, PropType, Ref, ShallowRef, MaybeRef, MaybeRefOrGetter, VNode, WritableComputedRef } from 'vue'
   import('vue')
   // @ts-ignore
+  export type { ParseBankCardActivityResponse, ReferenceOptionsResponse, SearchBanksResponse, SearchBankCardTemplatesResponse, SearchRegionsResponse, SearchBenefitUsagePlatformsResponse, SearchActivityCategoriesResponse, ResolveSelectionsResponse, CreateBankCardActivityResponse, BankTaskPayload, BankTaskFormData, SelectOption } from './src/types/bankCardActivities'
+  import('./src/types/bankCardActivities')
+  // @ts-ignore
   export type { IsLoggedInApiResponse, AccountApiResponse } from './src/types/officialAccounts'
   import('./src/types/officialAccounts')
 }
