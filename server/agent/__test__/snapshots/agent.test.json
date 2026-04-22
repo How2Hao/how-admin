@@ -1,23 +1,29 @@
 {
-  "bankCardOrganization": [
-    "1"
-  ],
-  "bankCardTemplateID": "",
+  "activityCategoryId": null,
+  "bankCardOrganization": 1,
+  "bankCardTemplateId": null,
   "bankCardType": "DEBIT",
   "bankId": 12,
   "benefitAmount": 88,
-  "dayOfMonth": null,
+  "benefitCategoryId": null,
+  "benefitDescription": "平安借记卡快捷消费达标抽微信立减金，最高888元",
+  "benefitPayPlatformId": null,
+  "benefitUsagePlatformId": null,
+  "daysOfMonth": null,
   "daysOfWeek": null,
-  "description": "报名后快捷消费达标可抽微信立减金，消费满1000/2000/5000/1万元分别对应不同抽奖档位，每档限1次",
+  "frequencyControl": null,
+  "guideText": null,
   "endDate": "",
   "extraConditionsText": "需先报名后消费，库存每日10点更新，礼品数量有限先到先得",
-  "offerSummaryText": "平安借记卡快捷消费达标抽微信立减金，最高888元",
+  "participationDifficulty": null,
   "regionCode": "100000",
   "regionMatchStrategy": "EXACT",
   "reminderTime": "10:00",
   "repeatType": "DAILY",
+  "ruleBrief": "报名后快捷消费达标可抽微信立减金，消费满1000/2000/5000/1万元分别对应不同抽奖档位，每档限1次",
+  "ruleDetail": null,
   "startDate": "",
   "title": "平安借记卡支付达标抽微信立减金",
   "yearlyDaysOfMonth": null,
-  "yearlyMonth": null
+  "yearlyMonths": null
 }

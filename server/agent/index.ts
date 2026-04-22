@@ -3,10 +3,14 @@ import { createAgent, toolStrategy } from 'langchain'
 import { buildContent } from './content/buildContent'
 import { DeepSeekModel } from './models/deepseek'
 import systemPrompt from './prompts/system.md?raw'
-import { BankTask } from './schemas/bankTask'
+import { getBankTaskSchema } from './schemas/bankTask'
 import { ocrAgent } from './subagents/ocr'
+import { getActivityCategoryIdTool } from './tools/getActivityCategoryId.tool'
 import { getBankCardTemplateIdTool } from './tools/getBankCardTemplateId.tool'
 import { getBankIdTool } from './tools/getBankId.tool'
+import { getBenefitCategoryIdTool } from './tools/getBenefitCategoryId.tool'
+import { getBenefitPlatformIdTool } from './tools/getBenefitPlatformId.tool'
+import { getBenefitUsagePlatformIdTool } from './tools/getBenefitUsagePlatformId.tool'
 import { getRegionCodeTool } from './tools/getRegionCode.tool'
 
 export async function runAgent(result: ParserWebByURLResult) {
@@ -22,6 +26,7 @@ export async function runAgent(result: ParserWebByURLResult) {
   }
 
   const content = buildContent(markdown, ocrResults)
+  const bankTaskSchema = getBankTaskSchema()
 
   // The main parser contract is one primary activity per article.
   const bankTaskAgent = createAgent({
@@ -30,9 +35,13 @@ export async function runAgent(result: ParserWebByURLResult) {
     tools: [
       getBankCardTemplateIdTool,
       getBankIdTool,
+      getBenefitCategoryIdTool,
+      getBenefitPlatformIdTool,
+      getBenefitUsagePlatformIdTool,
+      getActivityCategoryIdTool,
       getRegionCodeTool,
     ],
-    responseFormat: toolStrategy(BankTask),
+    responseFormat: toolStrategy(bankTaskSchema),
   })
 
   const bankTaskResult = await bankTaskAgent.invoke({
