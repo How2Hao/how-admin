@@ -33,6 +33,7 @@
     "strictNullChecks": true,
     "noUnusedLocals": true,
     "noEmit": true,
+    "ignoreDeprecations": "6.0",
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true

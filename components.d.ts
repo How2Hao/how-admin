@@ -12,6 +12,7 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     AddOfficialAccount: typeof import('./src/components/AddOfficialAccount.vue')['default']
+    BankCardActivityForm: typeof import('./src/components/bank-card-activities/BankCardActivityForm.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     TAside: typeof import('tdesign-vue-next')['Aside']
@@ -38,9 +39,11 @@ declare module 'vue' {
     TLoading: typeof import('tdesign-vue-next')['Loading']
     TMenu: typeof import('tdesign-vue-next')['Menu']
     TMenuItem: typeof import('tdesign-vue-next')['MenuItem']
+    TPagination: typeof import('tdesign-vue-next')['Pagination']
     TSelect: typeof import('tdesign-vue-next')['Select']
     TSpace: typeof import('tdesign-vue-next')['Space']
     TSubmenu: typeof import('tdesign-vue-next')['Submenu']
+    TTable: typeof import('tdesign-vue-next')['Table']
     TTextarea: typeof import('tdesign-vue-next')['Textarea']
     TTimePicker: typeof import('tdesign-vue-next')['TimePicker']
   }

@@ -15,8 +15,21 @@ export type ResolveSelectionsResponse = ReturnType<typeof import('../../server/a
 export type CreateBankCardActivityResponse = ReturnType<typeof import('../../server/api/bankCardActivities/web/create.post').default> extends Promise<infer T>
   ? T
   : never
+export type TaskTemplateListResponse = ReturnType<typeof import('../../server/api/bankCardActivities/taskTemplates/index.get').default> extends Promise<infer T>
+  ? T
+  : never
+export type TaskTemplateDetailResponse = ReturnType<typeof import('../../server/api/bankCardActivities/taskTemplates/[id].get').default> extends Promise<infer T>
+  ? T
+  : never
+export type CreateTaskTemplateResponse = ReturnType<typeof import('../../server/api/bankCardActivities/taskTemplates/index.post').default> extends Promise<infer T>
+  ? T
+  : never
+export type UpdateTaskTemplateResponse = ReturnType<typeof import('../../server/api/bankCardActivities/taskTemplates/[id].put').default> extends Promise<infer T>
+  ? T
+  : never
 
 export type BankTaskPayload = ParseBankCardActivityResponse
+export type TaskTemplateListItem = TaskTemplateListResponse['list'][number]
 
 export interface BankTaskFormData {
   title: string

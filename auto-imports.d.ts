@@ -17,6 +17,7 @@ declare global {
   const controlledComputed: typeof import('@vueuse/core').controlledComputed
   const controlledRef: typeof import('@vueuse/core').controlledRef
   const createApp: typeof import('vue').createApp
+  const createEmptyBankTaskForm: typeof import('./src/composables/useBankCardActivityForm').createEmptyBankTaskForm
   const createEventHook: typeof import('@vueuse/core').createEventHook
   const createGlobalState: typeof import('@vueuse/core').createGlobalState
   const createInjectionState: typeof import('@vueuse/core').createInjectionState
@@ -35,6 +36,7 @@ declare global {
   const definePage: typeof import('vue-router/experimental').definePage
   const eagerComputed: typeof import('@vueuse/core').eagerComputed
   const effectScope: typeof import('vue').effectScope
+  const ensureCurrentOption: typeof import('./src/composables/useBankCardActivityForm').ensureCurrentOption
   const extendRef: typeof import('@vueuse/core').extendRef
   const getCurrentInstance: typeof import('vue').getCurrentInstance
   const getCurrentScope: typeof import('vue').getCurrentScope
@@ -52,6 +54,7 @@ declare global {
   const isShallow: typeof import('vue').isShallow
   const makeDestructurable: typeof import('@vueuse/core').makeDestructurable
   const markRaw: typeof import('vue').markRaw
+  const mergeCurrentOption: typeof import('./src/composables/useBankCardActivityForm').mergeCurrentOption
   const nextTick: typeof import('vue').nextTick
   const onActivated: typeof import('vue').onActivated
   const onBeforeMount: typeof import('vue').onBeforeMount
@@ -91,6 +94,7 @@ declare global {
   const refManualReset: typeof import('@vueuse/core').refManualReset
   const refThrottled: typeof import('@vueuse/core').refThrottled
   const refWithControl: typeof import('@vueuse/core').refWithControl
+  const requestJson: typeof import('./src/composables/useJsonRequest').requestJson
   const resolveComponent: typeof import('vue').resolveComponent
   const resolveRef: typeof import('@vueuse/core').resolveRef
   const resolveUnref: typeof import('@vueuse/core')['resolveUnref']
@@ -135,6 +139,8 @@ declare global {
   const useAsyncQueue: typeof import('@vueuse/core').useAsyncQueue
   const useAsyncState: typeof import('@vueuse/core').useAsyncState
   const useAttrs: typeof import('vue').useAttrs
+  const useBankCardActivityForm: typeof import('./src/composables/useBankCardActivityForm').useBankCardActivityForm
+  const useBankCardActivityReferenceData: typeof import('./src/composables/useBankCardActivityReferenceData').useBankCardActivityReferenceData
   const useBase64: typeof import('@vueuse/core').useBase64
   const useBattery: typeof import('@vueuse/core').useBattery
   const useBluetooth: typeof import('@vueuse/core').useBluetooth
@@ -310,7 +316,10 @@ declare global {
   export type { Component, Slot, Slots, ComponentPublicInstance, ComputedRef, DirectiveBinding, ExtractDefaultPropTypes, ExtractPropTypes, ExtractPublicPropTypes, InjectionKey, PropType, Ref, ShallowRef, MaybeRef, MaybeRefOrGetter, VNode, WritableComputedRef } from 'vue'
   import('vue')
   // @ts-ignore
-  export type { ParseBankCardActivityResponse, ReferenceOptionsResponse, SearchBanksResponse, SearchBankCardTemplatesResponse, SearchRegionsResponse, SearchBenefitUsagePlatformsResponse, SearchActivityCategoriesResponse, ResolveSelectionsResponse, CreateBankCardActivityResponse, BankTaskPayload, BankTaskFormData, SelectOption } from './src/types/bankCardActivities'
+  export type { BankTaskLikeData } from './src/composables/useBankCardActivityForm'
+  import('./src/composables/useBankCardActivityForm')
+  // @ts-ignore
+  export type { ParseBankCardActivityResponse, ReferenceOptionsResponse, SearchBanksResponse, SearchBankCardTemplatesResponse, SearchRegionsResponse, SearchBenefitUsagePlatformsResponse, SearchActivityCategoriesResponse, ResolveSelectionsResponse, CreateBankCardActivityResponse, TaskTemplateListResponse, TaskTemplateDetailResponse, CreateTaskTemplateResponse, UpdateTaskTemplateResponse, BankTaskPayload, TaskTemplateListItem, BankTaskFormData, SelectOption } from './src/types/bankCardActivities'
   import('./src/types/bankCardActivities')
   // @ts-ignore
   export type { IsLoggedInApiResponse, AccountApiResponse } from './src/types/officialAccounts'
@@ -333,6 +342,7 @@ declare module 'vue' {
     readonly controlledComputed: UnwrapRef<typeof import('@vueuse/core')['controlledComputed']>
     readonly controlledRef: UnwrapRef<typeof import('@vueuse/core')['controlledRef']>
     readonly createApp: UnwrapRef<typeof import('vue')['createApp']>
+    readonly createEmptyBankTaskForm: UnwrapRef<typeof import('./src/composables/useBankCardActivityForm')['createEmptyBankTaskForm']>
     readonly createEventHook: UnwrapRef<typeof import('@vueuse/core')['createEventHook']>
     readonly createGlobalState: UnwrapRef<typeof import('@vueuse/core')['createGlobalState']>
     readonly createInjectionState: UnwrapRef<typeof import('@vueuse/core')['createInjectionState']>
@@ -350,6 +360,7 @@ declare module 'vue' {
     readonly definePage: UnwrapRef<typeof import('vue-router/experimental')['definePage']>
     readonly eagerComputed: UnwrapRef<typeof import('@vueuse/core')['eagerComputed']>
     readonly effectScope: UnwrapRef<typeof import('vue')['effectScope']>
+    readonly ensureCurrentOption: UnwrapRef<typeof import('./src/composables/useBankCardActivityForm')['ensureCurrentOption']>
     readonly extendRef: UnwrapRef<typeof import('@vueuse/core')['extendRef']>
     readonly getCurrentInstance: UnwrapRef<typeof import('vue')['getCurrentInstance']>
     readonly getCurrentScope: UnwrapRef<typeof import('vue')['getCurrentScope']>
@@ -367,6 +378,7 @@ declare module 'vue' {
     readonly isShallow: UnwrapRef<typeof import('vue')['isShallow']>
     readonly makeDestructurable: UnwrapRef<typeof import('@vueuse/core')['makeDestructurable']>
     readonly markRaw: UnwrapRef<typeof import('vue')['markRaw']>
+    readonly mergeCurrentOption: UnwrapRef<typeof import('./src/composables/useBankCardActivityForm')['mergeCurrentOption']>
     readonly nextTick: UnwrapRef<typeof import('vue')['nextTick']>
     readonly onActivated: UnwrapRef<typeof import('vue')['onActivated']>
     readonly onBeforeMount: UnwrapRef<typeof import('vue')['onBeforeMount']>
@@ -406,6 +418,7 @@ declare module 'vue' {
     readonly refManualReset: UnwrapRef<typeof import('@vueuse/core')['refManualReset']>
     readonly refThrottled: UnwrapRef<typeof import('@vueuse/core')['refThrottled']>
     readonly refWithControl: UnwrapRef<typeof import('@vueuse/core')['refWithControl']>
+    readonly requestJson: UnwrapRef<typeof import('./src/composables/useJsonRequest')['requestJson']>
     readonly resolveComponent: UnwrapRef<typeof import('vue')['resolveComponent']>
     readonly resolveRef: UnwrapRef<typeof import('@vueuse/core')['resolveRef']>
     readonly shallowReactive: UnwrapRef<typeof import('vue')['shallowReactive']>
@@ -448,6 +461,8 @@ declare module 'vue' {
     readonly useAsyncQueue: UnwrapRef<typeof import('@vueuse/core')['useAsyncQueue']>
     readonly useAsyncState: UnwrapRef<typeof import('@vueuse/core')['useAsyncState']>
     readonly useAttrs: UnwrapRef<typeof import('vue')['useAttrs']>
+    readonly useBankCardActivityForm: UnwrapRef<typeof import('./src/composables/useBankCardActivityForm')['useBankCardActivityForm']>
+    readonly useBankCardActivityReferenceData: UnwrapRef<typeof import('./src/composables/useBankCardActivityReferenceData')['useBankCardActivityReferenceData']>
     readonly useBase64: UnwrapRef<typeof import('@vueuse/core')['useBase64']>
     readonly useBattery: UnwrapRef<typeof import('@vueuse/core')['useBattery']>
     readonly useBluetooth: UnwrapRef<typeof import('@vueuse/core')['useBluetooth']>

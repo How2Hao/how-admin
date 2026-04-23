@@ -4,7 +4,7 @@ const activeMenu = computed(() => route.path)
 </script>
 
 <template>
-  <t-layout h-full>
+  <t-layout h-full class="app-shell">
     <t-header>
       <t-head-menu value="item1" height="120px">
         <template #logo>
@@ -22,7 +22,7 @@ const activeMenu = computed(() => route.path)
         </template>
       </t-head-menu>
     </t-header>
-    <t-layout>
+    <t-layout class="min-w-0 overflow-hidden">
       <t-aside style="border-top: 1px solid var(--component-border)">
         <t-menu :value="activeMenu" theme="light" style="margin-right: 50px" height="550px" :default-expanded="['bank-card-activities']">
           <t-menu-item value="/" to="/">
@@ -50,12 +50,18 @@ const activeMenu = computed(() => route.path)
               </template>
               网页管理
             </t-menu-item>
+            <t-menu-item value="/bank-card-activities/edit" to="/bank-card-activities/edit">
+              <template #icon>
+                <div i-carbon:edit mr-2 />
+              </template>
+              模板管理
+            </t-menu-item>
           </t-submenu>
         </t-menu>
       </t-aside>
-      <t-layout>
+      <t-layout class="min-w-0 overflow-hidden">
         <Suspense>
-          <t-content font-sans p="x-4 y-10" text="center gray-700 dark:gray-200">
+          <t-content class="app-content min-w-0 w-full overflow-x-hidden" font-sans p="x-4 y-4 md:y-5" text="center gray-700 dark:gray-200">
             <RouterView />
           </t-content>
         </Suspense>
@@ -63,3 +69,14 @@ const activeMenu = computed(() => route.path)
     </t-layout>
   </t-layout>
 </template>
+
+<style scoped>
+.app-shell {
+  overflow-x: hidden;
+}
+
+.app-content {
+  box-sizing: border-box;
+  max-width: 100%;
+}
+</style>

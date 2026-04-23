@@ -41,6 +41,13 @@ declare module 'vue-router/auto-routes' {
       { all: ParamValue<false> },
       | never
     >,
+    '/bank-card-activities/edit/': RouteRecordInfo<
+      '/bank-card-activities/edit/',
+      '/bank-card-activities/edit',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
     '/bank-card-activities/web/': RouteRecordInfo<
       '/bank-card-activities/web/',
       '/bank-card-activities/web',
@@ -77,6 +84,12 @@ declare module 'vue-router/auto-routes' {
     'src/pages/[...all].vue': {
       routes:
         | '/[...all]'
+      views:
+        | never
+    }
+    'src/pages/bank-card-activities/edit/index.vue': {
+      routes:
+        | '/bank-card-activities/edit/'
       views:
         | never
     }
