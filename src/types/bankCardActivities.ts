@@ -59,6 +59,18 @@ export interface BankTaskFormData {
   activityCategoryId: number | null
   participationDifficulty: string
   guideText: string
+  requiresQualify: boolean
+  qualifyCycle: 'SAME_MONTH' | 'PREV_MONTH' | null
+  tierMode: 'NONE' | 'INDEPENDENT' | 'EXCLUSIVE'
+  tiers: BankTaskTierForm[]
+  qualifyDeadline: string
+}
+
+export interface BankTaskTierForm {
+  minAmount: number | null
+  minCount: number | null
+  benefitAmount: number | null
+  benefitDescription: string
 }
 
 export interface SelectOption {

@@ -70,6 +70,11 @@ export function toTaskTemplateMutation(payload: BankTaskCreateInput) {
     participationDifficulty: payload.participationDifficulty,
     extraConditionsText: payload.extraConditionsText,
     guideText: payload.guideText,
+    requiresQualify: payload.requiresQualify ? 1 : 0,
+    qualifyCycle: payload.qualifyCycle,
+    tierMode: payload.tierMode,
+    tiers: payload.tiers,
+    qualifyDeadline: payload.qualifyDeadline ? toTimestamp(payload.qualifyDeadline) : null,
   }
 }
 
@@ -103,6 +108,11 @@ export function toTaskTemplateDetail(row: TaskTemplateRow) {
     activityCategoryId: row.activityCategoryId,
     participationDifficulty: row.participationDifficulty,
     guideText: row.guideText,
+    requiresQualify: Boolean(row.requiresQualify),
+    qualifyCycle: row.qualifyCycle,
+    tierMode: row.tierMode,
+    tiers: row.tiers,
+    qualifyDeadline: formatTimestamp(row.qualifyDeadline),
   }
 }
 

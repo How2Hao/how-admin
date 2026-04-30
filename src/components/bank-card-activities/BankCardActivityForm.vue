@@ -122,6 +122,35 @@ const activityCategoryIdModel = computed({
     form.value.activityCategoryId = typeof value === 'number' ? value : null
   },
 })
+
+const qualifyDeadlineModel = computed({
+  get: () => form.value.qualifyDeadline || undefined,
+  set: (value) => {
+    form.value.qualifyDeadline = typeof value === 'string' ? value : ''
+  },
+})
+
+const qualifyCycleOptions = [
+  { label: '本月达标本月用', value: 'SAME_MONTH' },
+  { label: '上月达标本月用', value: 'PREV_MONTH' },
+]
+
+const tierModeOptions = [
+  { label: '无分档（兼容旧）', value: 'NONE' },
+  { label: '多档独立达成', value: 'INDEPENDENT' },
+  { label: '多档互斥取一', value: 'EXCLUSIVE' },
+]
+
+function addTier() {
+  form.value.tiers = [
+    ...form.value.tiers,
+    { minAmount: null, minCount: null, benefitAmount: null, benefitDescription: '' },
+  ]
+}
+
+function removeTier(index: number) {
+  form.value.tiers = form.value.tiers.filter((_, i) => i !== index)
+}
 </script>
 
 <template>
@@ -306,6 +335,76 @@ const activityCategoryIdModel = computed({
     <t-form-item label="操作指引">
       <t-textarea v-model="form.guideText" :autosize="{ minRows: 2, maxRows: 6 }" />
     </t-form-item>
+
+    <div class="border rounded p-3 mt-4 space-y-3">
+      <div class="font-medium text-base">达标 / 报名 / 分档</div>
+
+      <t-form-item label="是否需要先达标才能享受">
+        <t-switch v-model="form.requiresQualify" />
+      </t-form-item>
+
+      <div v-if="form.requiresQualify" class="gap-4 grid md:grid-cols-2">
+        <t-form-item label="达标周期">
+          <t-radio-group v-model="form.qualifyCycle" :options="qualifyCycleOptions" />
+        </t-form-item>
+        <t-form-item label="档位模式">
+          <t-radio-group v-model="form.tierMode" :options="tierModeOptions" />
+        </t-form-item>
+      </div>
+
+      <t-form-item v-if="form.requiresQualify" label="达标截止时间">
+        <t-date-picker
+          v-model="qualifyDeadlineModel"
+          enable-time-picker
+          format="YYYY-MM-DD HH:mm:ss"
+          value-type="YYYY-MM-DD HH:mm:ss"
+          clearable
+          placeholder="选填，仅展示用，例如本月 22 日 23:59"
+        />
+      </t-form-item>
+
+      <t-form-item v-if="form.requiresQualify" label="档位">
+        <div class="space-y-2 w-full">
+          <div
+            v-for="(tier, idx) in form.tiers"
+            :key="idx"
+            class="border rounded p-3 space-y-2"
+          >
+            <div class="flex items-center justify-between">
+              <span class="font-medium">档 {{ idx + 1 }}</span>
+              <t-button theme="danger" variant="text" @click="removeTier(idx)">
+                删除
+              </t-button>
+            </div>
+            <div class="gap-2 grid md:grid-cols-2">
+              <t-input-number
+                v-model="tier.minAmount"
+                :min="0"
+                placeholder="累计金额门槛（无填空）"
+                theme="normal"
+              />
+              <t-input-number
+                v-model="tier.minCount"
+                :min="0"
+                placeholder="累计笔数门槛（无填空）"
+                theme="normal"
+              />
+              <t-input-number
+                v-model="tier.benefitAmount"
+                :min="0"
+                placeholder="优惠金额"
+                theme="normal"
+              />
+              <t-input
+                v-model="tier.benefitDescription"
+                placeholder="例如：满 200 减 20"
+              />
+            </div>
+          </div>
+          <t-button @click="addTier">+ 新增一档</t-button>
+        </div>
+      </t-form-item>
+    </div>
 
     <slot name="actions" />
   </t-form>

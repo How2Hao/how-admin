@@ -35,6 +35,11 @@ export function createEmptyBankTaskForm(): BankTaskFormData {
     activityCategoryId: null,
     participationDifficulty: '',
     guideText: '',
+    requiresQualify: false,
+    qualifyCycle: null,
+    tierMode: 'NONE',
+    tiers: [],
+    qualifyDeadline: '',
   }
 }
 
@@ -133,6 +138,11 @@ export function useBankCardActivityForm() {
     form.activityCategoryId = payload.activityCategoryId
     form.participationDifficulty = payload.participationDifficulty ?? ''
     form.guideText = payload.guideText ?? ''
+    form.requiresQualify = (payload as any).requiresQualify ?? false
+    form.qualifyCycle = (payload as any).qualifyCycle ?? null
+    form.tierMode = (payload as any).tierMode ?? 'NONE'
+    form.tiers = (payload as any).tiers ?? []
+    form.qualifyDeadline = (payload as any).qualifyDeadline ?? ''
 
     cleanupRepeatFields()
   }
@@ -168,7 +178,19 @@ export function useBankCardActivityForm() {
       activityCategoryId: form.activityCategoryId,
       participationDifficulty: normalizeNullableString(form.participationDifficulty),
       guideText: normalizeNullableString(form.guideText),
-    }
+      requiresQualify: form.requiresQualify,
+      qualifyCycle: form.requiresQualify ? form.qualifyCycle : null,
+      tierMode: form.tierMode,
+      tiers: form.requiresQualify && form.tiers.length > 0
+        ? form.tiers.map(tier => ({
+            minAmount: tier.minAmount,
+            minCount: tier.minCount,
+            benefitAmount: tier.benefitAmount ?? 0,
+            benefitDescription: tier.benefitDescription.trim(),
+          }))
+        : null,
+      qualifyDeadline: form.qualifyDeadline.trim() || null,
+    } as BankTaskPayload
   }
 
   function validateForm() {
@@ -229,6 +251,26 @@ export function useBankCardActivityForm() {
     }
     if (form.repeatType === 'YEARLY' && form.yearlyMonths.length !== form.yearlyDaysOfMonth.length) {
       return '每年触发月份和日期数量需要一一对应'
+    }
+
+    if (form.requiresQualify) {
+      if (!form.qualifyCycle) {
+        return '请选择达标周期（本月达标本月用 / 上月达标本月用）'
+      }
+      if (form.tiers.length === 0) {
+        return '需要达标的活动至少要配置一档优惠'
+      }
+      for (const [idx, tier] of form.tiers.entries()) {
+        if (tier.minAmount == null && tier.minCount == null) {
+          return `第 ${idx + 1} 档至少需要填一个门槛（金额或笔数）`
+        }
+        if (tier.benefitAmount == null) {
+          return `第 ${idx + 1} 档的优惠金额必填`
+        }
+        if (!tier.benefitDescription.trim()) {
+          return `第 ${idx + 1} 档的优惠描述必填`
+        }
+      }
     }
 
     return null

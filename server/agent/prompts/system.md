@@ -55,7 +55,30 @@
 - 无法明确判断的平台、分类、参与难度等字段都可以填 `null`。
 - 任何字段都不要用虚构信息补齐。
 
-## 7. 输出约束
+## 7. 达标 / 报名 / 分档抽取
+
+- `requiresQualify`：
+  - 文章描述“先报名/先冲量/累计满 X 才能享受/达成 N 笔后参与”→ `true`
+  - “立享/直接减免/到店即享/单笔满即减”→ `false`
+- `qualifyCycle`（仅 `requiresQualify=true` 时填，否则 `null`）：
+  - “当月消费当月享/当月报名当月用/本月累计满 X 当月使用”→ `SAME_MONTH`
+  - “上月消费本月享/月初报名次月生效/上月累计满 X 本月使用”→ `PREV_MONTH`
+- `tierMode`：
+  - 单档活动（只有一个门槛）或无分档活动 → `NONE`
+  - “分别享受/独立计算/可叠加/各档独立达成”→ `INDEPENDENT`
+  - “二选一/取最高一档/享受其中一项/最多享一档”→ `EXCLUSIVE`
+- `tiers`：
+  - `requiresQualify=false` 时填 `null`
+  - `requiresQualify=true` 时必填，按门槛由低到高列出每档：
+    - `minAmount`：该档累计金额门槛（无金额要求填 `null`）
+    - `minCount`：该档累计笔数门槛（无笔数要求填 `null`）
+    - `benefitAmount`：达成该档的优惠金额
+    - `benefitDescription`：一句话中文描述，如“满 200 减 20”、“5 笔减 30”
+- `qualifyDeadline`：
+  - 文章明确“X 月 X 日前完成/本月 22 日前累计达标/月底前完成”→ 写成 `"YYYY-MM-DD HH:mm:ss"` 字符串
+  - 没明确截止日 → `null`
+
+## 8. 输出约束
 
 - 只返回 1 个结构化对象。
 - 最终结构由 `responseFormat` 接管；你只需根据字段含义提供准确值。

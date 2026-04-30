@@ -1,15 +1,17 @@
 import { eq, sql } from 'drizzle-orm'
 import { createError } from 'h3'
 import { defineHandler } from 'nitro'
+import { referenceData } from '~~/agent/utils/referenceData'
 import { db } from '~~/db'
-import { bankTaskCreateSchema } from '~~/utils/bankCardActivityForm'
+import { getBankTaskCreateSchema } from '~~/utils/bankCardActivityForm'
 import { parseTaskTemplateId, toTaskTemplateMutation } from '~~/utils/taskTemplate'
 import { taskTemplate } from '../../../../drizzle/schema'
 
 export default defineHandler(async (event) => {
+  await referenceData.ensureInitialized()
   const id = parseTaskTemplateId(event.context.params?.id)
   const body = await event.req.json()
-  const parsed = bankTaskCreateSchema.safeParse(body)
+  const parsed = getBankTaskCreateSchema().safeParse(body)
 
   if (!parsed.success) {
     throw createError({

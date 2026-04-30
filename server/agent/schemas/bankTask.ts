@@ -44,5 +44,15 @@ export function getBankTaskSchema() {
     activityCategoryId: z.number().nullable().describe('活动分类ID。当文章可明确归入某个活动分类时，使用 `get_activity_category_id` 工具查询；否则填 null。'),
     participationDifficulty: z.string().nullable().describe('参与难度。根据文章活动描述推测参与复杂度，例如“简单”“中等”“复杂”等。'),
     guideText: z.string().nullable().describe('操作指引。用简短步骤总结“如何参加”活动；没有清晰步骤时填 null。'),
+    requiresQualify: z.boolean().default(false).describe('是否需要先达标才能享受。文章描述“先报名/先冲量/累计满 X 才能享受”填 true；“立享/直接减免/到店即享”填 false。'),
+    qualifyCycle: z.enum(['SAME_MONTH', 'PREV_MONTH']).nullable().describe('仅 requiresQualify=true 时填。文章描述“当月消费当月享/当月报名当月用”填 SAME_MONTH；“上月消费本月享/月初报名次月生效”填 PREV_MONTH；requiresQualify=false 时填 null。'),
+    tierMode: z.enum(['NONE', 'INDEPENDENT', 'EXCLUSIVE']).default('NONE').describe('档位模式。无分档或单档活动填 NONE；多档独立达成各拿各的（“分别享受/独立计算/可叠加”）填 INDEPENDENT；多档互斥取一档（“二选一/取最高一档/享受其中一项”）填 EXCLUSIVE。'),
+    tiers: z.array(z.object({
+      minAmount: z.number().nullable().describe('该档累计金额门槛，无金额要求时填 null。'),
+      minCount: z.number().nullable().describe('该档累计笔数门槛，无笔数要求时填 null。'),
+      benefitAmount: z.number().describe('达成该档可获得的优惠金额。'),
+      benefitDescription: z.string().describe('该档优惠的中文一句话描述，例如“满 200 减 20”、“消费 5 笔减 30”。'),
+    })).nullable().describe('分档优惠数组。requiresQualify=true 时必填且长度 ≥ 1，按门槛由低到高列出每档；requiresQualify=false 时填 null。'),
+    qualifyDeadline: z.string().nullable().describe('达标截止日期。形如 “2026-05-22 23:59” 的本地时间字符串；文章无明确截止则填 null。后端会转成时间戳存储。'),
   })
 }

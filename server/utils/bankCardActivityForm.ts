@@ -23,7 +23,19 @@ export const repeatTypeOptions = [
 const dateTimePattern = /^\d{4}-\d{2}-\d{2}(?: \d{2}:\d{2}:\d{2})?$/
 const reminderTimePattern = /^\d{2}:\d{2}$/
 
-export const bankTaskCreateSchema = getBankTaskSchema().superRefine((value, ctx) => {
+// 延迟求值：schema 内的 describe 依赖 referenceData，
+// 而 referenceData.initialize() 是 async；模块顶层立即求值会撞到 referenceData 还未 init 的 race。
+let _bankTaskCreateSchema: ReturnType<typeof buildBankTaskCreateSchema> | null = null
+
+export function getBankTaskCreateSchema() {
+  if (!_bankTaskCreateSchema) {
+    _bankTaskCreateSchema = buildBankTaskCreateSchema()
+  }
+  return _bankTaskCreateSchema
+}
+
+function buildBankTaskCreateSchema() {
+  return getBankTaskSchema().superRefine((value, ctx) => {
   const startDate = parseDateTimeString(value.startDate)
   const endDate = parseDateTimeString(value.endDate)
 
@@ -104,9 +116,10 @@ export const bankTaskCreateSchema = getBankTaskSchema().superRefine((value, ctx)
       })
     }
   }
-})
+  })
+}
 
-export type BankTaskCreateInput = z.infer<typeof bankTaskCreateSchema>
+export type BankTaskCreateInput = z.infer<ReturnType<typeof buildBankTaskCreateSchema>>
 
 export function getReferenceOptions() {
   return {

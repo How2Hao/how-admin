@@ -74,6 +74,16 @@ class ReferenceDataCache {
   private _usagePlatformFuse: Fuse<BenefitUsagePlatformRef> | null = null
   private _activityCategoryFuse: Fuse<ActivityCategoryRef> | null = null
 
+  private _initPromise: Promise<void> | null = null
+
+  async ensureInitialized() {
+    if (this._cardOrganizations) return
+    if (!this._initPromise) {
+      this._initPromise = this.initialize()
+    }
+    await this._initPromise
+  }
+
   async initialize() {
     const [banks, regions, categories, templates, platforms, usagePlatforms, activityCategories, cardOrganizations] = await Promise.all([
       db.select({ id: bank.id, name: bank.name }).from(bank),

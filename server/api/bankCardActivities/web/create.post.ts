@@ -1,12 +1,14 @@
 import { createError } from 'h3'
 import { defineHandler } from 'nitro'
+import { referenceData } from '~~/agent/utils/referenceData'
 import { db } from '~~/db'
-import { bankTaskCreateSchema, serializeNumberArray, toTimestamp } from '~~/utils/bankCardActivityForm'
+import { getBankTaskCreateSchema, serializeNumberArray, toTimestamp } from '~~/utils/bankCardActivityForm'
 import { taskTemplate } from '../../../../drizzle/schema'
 
 export default defineHandler(async (event) => {
+  await referenceData.ensureInitialized()
   const body = await event.req.json()
-  const parsed = bankTaskCreateSchema.safeParse(body)
+  const parsed = getBankTaskCreateSchema().safeParse(body)
 
   if (!parsed.success) {
     throw createError({
@@ -55,6 +57,11 @@ export default defineHandler(async (event) => {
     participationDifficulty: payload.participationDifficulty,
     extraConditionsText: payload.extraConditionsText,
     guideText: payload.guideText,
+    requiresQualify: payload.requiresQualify ? 1 : 0,
+    qualifyCycle: payload.qualifyCycle,
+    tierMode: payload.tierMode,
+    tiers: payload.tiers,
+    qualifyDeadline: payload.qualifyDeadline ? toTimestamp(payload.qualifyDeadline) : null,
     createdAt: Date.now(),
   })
 

@@ -397,6 +397,11 @@ export const taskTemplate = mysqlTable('task_template', {
   participationDifficulty: varchar('participation_difficulty', { length: 16 }),
   extraConditionsText: text('extra_conditions_text'),
   guideText: text('guide_text'),
+  requiresQualify: tinyint('requires_qualify').default(0).notNull(),
+  qualifyCycle: mysqlEnum('qualify_cycle', ['SAME_MONTH', 'PREV_MONTH']),
+  tierMode: mysqlEnum('tier_mode', ['NONE', 'INDEPENDENT', 'EXCLUSIVE']).default('NONE').notNull(),
+  tiers: json('tiers').$type<{ minAmount: number | null; minCount: number | null; benefitAmount: number; benefitDescription: string }[]>(),
+  qualifyDeadline: bigint('qualify_deadline', { mode: 'number' }),
   createdAt: bigint('created_at', { mode: 'number' }).notNull(),
   updatedAt: datetime('updated_at', { mode: 'string' }).default(sql`(CURRENT_TIMESTAMP)`).notNull(),
 }, table => [
