@@ -125,7 +125,7 @@ const activityCategoryIdModel = computed({
 </script>
 
 <template>
-  <t-form :data="form" label-align="top" required-mark>
+  <t-form :data="form" label-align="left" label-width="84px" required-mark>
     <div class="gap-4 grid md:grid-cols-2">
       <t-form-item label="活动标题">
         <t-input v-model="form.title" placeholder="请输入活动标题" clearable />

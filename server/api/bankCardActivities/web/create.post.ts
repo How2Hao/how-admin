@@ -17,7 +17,7 @@ export default defineHandler(async (event) => {
   }
 
   const payload = parsed.data
-  const [created] = await db.insert(taskTemplate).values({
+  const insertResult = await db.insert(taskTemplate).values({
     title: payload.title,
     ruleBrief: payload.ruleBrief,
     ruleDetail: payload.ruleDetail,
@@ -56,9 +56,12 @@ export default defineHandler(async (event) => {
     extraConditionsText: payload.extraConditionsText,
     guideText: payload.guideText,
     createdAt: Date.now(),
-  }).$returningId()
+  })
 
-  const createdId = Number((created as { id: number }).id)
+  const createdId = Number((insertResult as unknown as [{ insertId: number }])[0].insertId)
+  if (!createdId) {
+    throw createError({ statusCode: 500, statusMessage: '创建失败：未获取到自增 ID' })
+  }
 
   return {
     id: createdId,

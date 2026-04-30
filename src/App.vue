@@ -57,6 +57,32 @@ const activeMenu = computed(() => route.path)
               模板管理
             </t-menu-item>
           </t-submenu>
+          <t-menu-item value="/card-templates" to="/card-templates">
+            <template #icon>
+              <div i-carbon:credit-card mr-3 />
+            </template>
+            卡片模板
+          </t-menu-item>
+          <t-submenu value="users">
+            <template #icon>
+              <div i-carbon:user-multiple mr-3 />
+            </template>
+            <template #title>
+              <span>用户管理</span>
+            </template>
+            <t-menu-item value="/users/cards" to="/users/cards">
+              <template #icon>
+                <div i-carbon:credit-card mr-2 />
+              </template>
+              卡片管理
+            </t-menu-item>
+          </t-submenu>
+          <t-menu-item value="/user-feedbacks" to="/user-feedbacks">
+            <template #icon>
+              <div i-carbon:chat mr-3 />
+            </template>
+            用户反馈
+          </t-menu-item>
         </t-menu>
       </t-aside>
       <t-layout class="min-w-0 overflow-hidden">

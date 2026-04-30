@@ -27,10 +27,20 @@ function shouldFilterImage($img: Cheerio<any>, src: string) {
     /\/avatar\//i, // 头像
     /\/icon\//i, // 图标
     /\/emoji\//i, // 表情
-    /\.gif$/i, // 动态图（常为表情）
     /\/mmbiz_qpic\//i, // 微信特定图片，常用于头像、二维码
+    /\/mmbiz_gif\//i, // 微信动图
+    /\/mmbiz_webp\//i, // 微信 webp
+    /[?&]wx_fmt=(gif|webp|bmp)\b/i, // 微信图片格式参数（OCR 不支持的格式）
   ]
   if (urlPatterns.some(pattern => pattern.test(src)))
+    return true
+
+  // 规则1b：按 URL 路径后缀过滤（忽略 query string）
+  const pathname = (() => {
+    try { return new URL(src, 'https://placeholder.local').pathname }
+    catch { return src }
+  })()
+  if (/\.(?:gif|webp|bmp|svg)$/i.test(pathname))
     return true
 
   // 规则2：根据尺寸过滤（如果 img 标签有 width/height 属性

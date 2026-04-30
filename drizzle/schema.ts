@@ -167,6 +167,10 @@ export const bankCardTemplate = mysqlTable('bank_card_template', {
   cardLevel: varchar('card_level', { length: 255 }),
   cardOrganization: varchar('card_organization', { length: 50 }).default('UNIONPAY').notNull(),
   cover: varchar({ length: 500 }),
+  alias: varchar({ length: 255 }),
+  tags: varchar({ length: 1024 }),
+  dataSource: varchar('data_source', { length: 50 }).default('51credit').notNull(),
+  relatedCount: int('related_count').default(0).notNull(),
   provinceCode: varchar('province_code', { length: 20 }),
   provinceName: varchar('province_name', { length: 50 }),
   cityCode: varchar('city_code', { length: 20 }),
@@ -452,4 +456,37 @@ export const userUidSequence = mysqlTable('user_uid_sequence', {
   updatedAt: bigint('updated_at', { mode: 'number' }).notNull(),
 }, table => [
   primaryKey({ columns: [table.id], name: 'user_uid_sequence_id' }),
+])
+
+export const appRelease = mysqlTable('app_release', {
+  id: int().autoincrement().notNull(),
+  version: varchar({ length: 32 }).notNull(),
+  changelog: text().notNull(),
+  androidUrl: varchar('android_url', { length: 500 }),
+  iosUrl: varchar('ios_url', { length: 500 }),
+  isMandatory: tinyint('is_mandatory').default(0).notNull(),
+  publishedAt: bigint('published_at', { mode: 'number' }).notNull(),
+  createdAt: bigint('created_at', { mode: 'number' }).notNull(),
+}, table => [
+  unique('app_release_version').on(table.version),
+  primaryKey({ columns: [table.id], name: 'app_release_id' }),
+])
+
+export const userFeedback = mysqlTable('user_feedback', {
+  id: int().autoincrement().notNull(),
+  userId: int().notNull(),
+  type: varchar({ length: 20 }).notNull(),
+  content: text().notNull(),
+  images: json().$type<string[]>(),
+  context: json().$type<Record<string, unknown>>(),
+  status: mysqlEnum(['OPEN', 'IN_PROGRESS', 'RESOLVED', 'WONT_FIX']).default('OPEN').notNull(),
+  resolutionType: mysqlEnum('resolution_type', ['NONE', 'NO_UPDATE', 'NEEDS_UPDATE']).default('NONE').notNull(),
+  minAppVersion: varchar('min_app_version', { length: 20 }),
+  resolutionNote: varchar('resolution_note', { length: 500 }),
+  resolvedAt: bigint('resolved_at', { mode: 'number' }),
+  createdAt: datetime({ mode: 'string', fsp: 6 }).default(sql`(CURRENT_TIMESTAMP(6))`).notNull(),
+}, table => [
+  index('idx_user_feedback_userId').on(table.userId),
+  index('idx_user_feedback_user_created').on(table.userId, table.createdAt),
+  primaryKey({ columns: [table.id], name: 'user_feedback_id' }),
 ])

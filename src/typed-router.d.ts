@@ -62,6 +62,27 @@ declare module 'vue-router/auto-routes' {
       Record<never, never>,
       | never
     >,
+    '/card-templates/': RouteRecordInfo<
+      '/card-templates/',
+      '/card-templates',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
+    '/user-feedbacks/': RouteRecordInfo<
+      '/user-feedbacks/',
+      '/user-feedbacks',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
+    '/users/cards/': RouteRecordInfo<
+      '/users/cards/',
+      '/users/cards',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
   }
 
   /**
@@ -102,6 +123,24 @@ declare module 'vue-router/auto-routes' {
     'src/pages/bank-card-activities/wechat/index.vue': {
       routes:
         | '/bank-card-activities/wechat/'
+      views:
+        | never
+    }
+    'src/pages/card-templates/index.vue': {
+      routes:
+        | '/card-templates/'
+      views:
+        | never
+    }
+    'src/pages/user-feedbacks/index.vue': {
+      routes:
+        | '/user-feedbacks/'
+      views:
+        | never
+    }
+    'src/pages/users/cards/index.vue': {
+      routes:
+        | '/users/cards/'
       views:
         | never
     }

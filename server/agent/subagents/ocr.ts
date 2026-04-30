@@ -18,7 +18,7 @@ interface LayoutParsingResult {
   }
 }
 
-export async function performOCR(url: string): Promise<OCRResponse> {
+export async function performOCR(url: string): Promise<OCRResponse | null> {
   const headers = {
     'Authorization': `token ${TOKEN}`,
     'Content-Type': 'application/json',
@@ -40,14 +40,24 @@ export async function performOCR(url: string): Promise<OCRResponse> {
     body: JSON.stringify(payload),
   })
 
-  const result = await response.json()
-  return result.result
+  if (!response.ok) {
+    const text = await response.text().catch(() => '')
+    console.warn(`[ocr] ${response.status} ${response.statusText} for ${url}: ${text.slice(0, 200)}`)
+    return null
+  }
+
+  const result = await response.json() as { result?: OCRResponse }
+  return result?.result ?? null
 }
 
 export async function ocrAgent(url: string) {
   const ocrResult = await performOCR(url)
 
-  const ocrText = ocrResult.layoutParsingResults[0].markdown.text
+  const ocrText = ocrResult?.layoutParsingResults?.[0]?.markdown?.text
+  if (!ocrText) {
+    console.warn(`[ocr] empty result for ${url}`)
+    return null
+  }
   const $ = cheerio.load(ocrText)
   $('img').remove()
   const nhm = new NodeHtmlMarkdown({})
