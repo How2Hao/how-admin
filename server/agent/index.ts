@@ -28,10 +28,25 @@ export async function runAgent(result: ParserWebByURLResult) {
   const content = buildContent(markdown, ocrResults)
   const bankTaskSchema = getBankTaskGroupSchema()
 
+  const now = new Date()
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const today = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`
+  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
+  const monthEnd = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(lastDay)}`
+  const dynamicSystemPrompt = `${systemPrompt}
+
+## 时间上下文（用于缺信息时的默认值）
+
+- 今天: ${today}
+- 本月最后一天: ${monthEnd}
+- 当文章未明确给出活动开始时间时，startDate 默认填 "${today} 00:00:00"
+- 当文章未明确给出活动结束时间时，endDate 默认填 "${monthEnd} 23:59:59"
+`
+
   // The main parser contract is one primary activity per article.
   const bankTaskAgent = createAgent({
     model: DeepSeekModel,
-    systemPrompt,
+    systemPrompt: dynamicSystemPrompt,
     tools: [
       getBankCardTemplateIdTool,
       getBankIdTool,
