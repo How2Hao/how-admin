@@ -44,8 +44,6 @@ export async function uploadCardCover(bankId: string, id: number, buf: Buffer): 
 }
 
 export async function uploadPasteImage(buf: Buffer, ext = 'png'): Promise<string> {
-  if (!buf || buf.byteLength === 0)
-    throw new Error('uploadPasteImage: 内容为空')
   const safeExt = /^[a-z0-9]+$/i.test(ext) ? ext.toLowerCase() : 'png'
   const yyyymm = new Date().toISOString().slice(0, 7).replace('-', '')
   const random = Math.random().toString(36).slice(2, 10)
