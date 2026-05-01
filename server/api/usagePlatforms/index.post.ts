@@ -38,18 +38,18 @@ export default defineHandler(async (event) => {
 
   if (body.iconBase64?.trim()) {
     const m = /^data:[^;]+;base64,(.+)$/.exec(body.iconBase64)
-    if (m) {
-      const buf = Buffer.from(m[1], 'base64')
-      if (buf.byteLength > 0 && buf.byteLength <= 5 * 1024 * 1024) {
-        try {
-          const url = await uploadFile(`usage_platform/${id}.png`, buf)
-          await db.update(benefitUsagePlatform)
-            .set({ icon: url })
-            .where(eq(benefitUsagePlatform.id, id))
-        }
-        catch (e: any) {
-          throw createError({ statusCode: 500, statusMessage: `图标上传失败：${e?.message ?? e}` })
-        }
+    if (!m)
+      throw createError({ statusCode: 400, statusMessage: 'iconBase64 不是合法 data URL' })
+    const buf = Buffer.from(m[1], 'base64')
+    if (buf.byteLength > 0 && buf.byteLength <= 5 * 1024 * 1024) {
+      try {
+        const url = await uploadFile(`usage_platform/${id}.png`, buf)
+        await db.update(benefitUsagePlatform)
+          .set({ icon: url })
+          .where(eq(benefitUsagePlatform.id, id))
+      }
+      catch (e: any) {
+        throw createError({ statusCode: 500, statusMessage: `图标上传失败：${e?.message ?? e}` })
       }
     }
   }
