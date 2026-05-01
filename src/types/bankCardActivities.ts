@@ -50,8 +50,6 @@ export interface BankTaskFormData {
   reminderTime: string
   startDate: string
   endDate: string
-  benefitAmount: number | null
-  benefitDescription: string
   extraConditionsText: string
   benefitCategoryId: number | null
   benefitPayPlatformId: number | null
@@ -59,11 +57,10 @@ export interface BankTaskFormData {
   activityCategoryId: number | null
   participationDifficulty: string
   guideText: string
-  requiresQualify: boolean
-  qualifyCycle: 'SAME_MONTH' | 'PREV_MONTH' | null
-  tierMode: 'NONE' | 'INDEPENDENT' | 'EXCLUSIVE'
+  /** 多档活动是否互斥取一。null 表示单档 */
+  tierExclusive: boolean | null
+  /** 档位数组。单档活动长度为 1（minAmount/minCount 可为 null 表示无门槛）；多档时按门槛由低到高 */
   tiers: BankTaskTierForm[]
-  qualifyDeadline: string
 }
 
 export interface BankTaskTierForm {

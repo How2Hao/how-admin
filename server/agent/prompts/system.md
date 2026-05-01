@@ -55,30 +55,25 @@
 - 无法明确判断的平台、分类、参与难度等字段都可以填 `null`。
 - 任何字段都不要用虚构信息补齐。
 
-## 7. 达标 / 报名 / 分档抽取
+## 7. 分档输出
 
-- `requiresQualify`：
-  - 文章描述“先报名/先冲量/累计满 X 才能享受/达成 N 笔后参与”→ `true`
-  - “立享/直接减免/到店即享/单笔满即减”→ `false`
-- `qualifyCycle`（仅 `requiresQualify=true` 时填，否则 `null`）：
-  - “当月消费当月享/当月报名当月用/本月累计满 X 当月使用”→ `SAME_MONTH`
-  - “上月消费本月享/月初报名次月生效/上月累计满 X 本月使用”→ `PREV_MONTH`
-- `tierMode`：
-  - 单档活动（只有一个门槛）或无分档活动 → `NONE`
-  - “分别享受/独立计算/可叠加/各档独立达成”→ `INDEPENDENT`
-  - “二选一/取最高一档/享受其中一项/最多享一档”→ `EXCLUSIVE`
-- `tiers`：
-  - `requiresQualify=false` 时填 `null`
-  - `requiresQualify=true` 时必填，按门槛由低到高列出每档：
-    - `minAmount`：该档累计金额门槛（无金额要求填 `null`）
-    - `minCount`：该档累计笔数门槛（无笔数要求填 `null`）
-    - `benefitAmount`：达成该档的优惠金额
-    - `benefitDescription`：一句话中文描述，如“满 200 减 20”、“5 笔减 30”
-- `qualifyDeadline`：
-  - 文章明确“X 月 X 日前完成/本月 22 日前累计达标/月底前完成”→ 写成 `"YYYY-MM-DD HH:mm:ss"` 字符串
-  - 没明确截止日 → `null`
+输出根字段是 `{ templates: [...], tierExclusive }`：
+
+- **单档活动**（只有一个门槛 / 一种优惠）→ `templates` 数组只填 1 条；`tierExclusive=null`
+- **多档活动**（同一活动有多个门槛 / 多档优惠）→ `templates` 按门槛由低到高列出每档，每档独立填 `minAmount / minCount / benefitAmount / benefitDescription`；公共字段（`title / bankId / repeatType / reminderTime` 等）每条都填一致值
+- **`tierExclusive`**：
+  - 单档（`templates.length === 1`）→ `null`
+  - 多档"分别享受 / 独立计算 / 可叠加 / 各档独立" → `false`
+  - 多档"二选一 / 取最高一档 / 享受其中一项 / 最多享一档" → `true`
+- **每档的 `minAmount / minCount`**：
+  - "满 X 元减 Y" 这种金额门槛填 `minAmount=X`，`minCount=null`
+  - "X 笔减 Y" 这种笔数门槛填 `minCount=X`，`minAmount=null`
+  - "满 X 元且 N 笔" 两者都填
+  - 单档无门槛活动（如"立享 8 折"）两者都填 `null`
+- **每档的 `benefitAmount`**：本档具体优惠金额，例如"满 200 减 20"填 `20`
+- **每档的 `benefitDescription`**：本档一句话中文描述，例如"满 200 减 20" / "5 笔减 30"
 
 ## 8. 输出约束
 
-- 只返回 1 个结构化对象。
+- 只返回 1 个结构化对象（`{ templates, tierExclusive }`）。
 - 最终结构由 `responseFormat` 接管；你只需根据字段含义提供准确值。

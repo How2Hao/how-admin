@@ -1,8 +1,10 @@
+import { eq } from 'drizzle-orm'
 import { createError } from 'h3'
 import { defineHandler } from 'nitro'
 import { referenceData } from '~~/agent/utils/referenceData'
 import { db } from '~~/db'
-import { getBankTaskCreateSchema, serializeNumberArray, toTimestamp } from '~~/utils/bankCardActivityForm'
+import { getBankTaskCreateSchema } from '~~/utils/bankCardActivityForm'
+import { toTemplateMutation } from '~~/utils/taskTemplate'
 import { taskTemplate } from '../../../../drizzle/schema'
 
 export default defineHandler(async (event) => {
@@ -18,60 +20,55 @@ export default defineHandler(async (event) => {
     })
   }
 
-  const payload = parsed.data
-  const insertResult = await db.insert(taskTemplate).values({
-    title: payload.title,
-    ruleBrief: payload.ruleBrief,
-    ruleDetail: payload.ruleDetail,
-    ruleSource: null,
-    date: null,
-    bankId: payload.bankId,
-    bankCardOrganization: String(payload.bankCardOrganization),
-    bankCardTemplateId: payload.bankCardTemplateId,
-    bankCardType: payload.bankCardType,
-    bankCardLevel: null,
-    regionCode: payload.regionCode,
-    regionMatchStrategy: payload.regionMatchStrategy,
-    repeatType: payload.repeatType,
-    reminderTime: payload.reminderTime,
-    startDate: toTimestamp(payload.startDate),
-    endDate: toTimestamp(payload.endDate),
-    daysOfWeek: serializeNumberArray(payload.daysOfWeek),
-    yearlyMonths: serializeNumberArray(payload.yearlyMonths),
-    daysOfMonth: serializeNumberArray(payload.daysOfMonth),
-    yearlyDaysOfMonth: serializeNumberArray(payload.yearlyDaysOfMonth),
-    frequencyControl: payload.frequencyControl,
+  const { templates, tierExclusive } = parsed.data
+  const effectiveTierExclusive = templates.length > 1 ? tierExclusive : null
+
+  const sortedTemplates = [...templates].sort((a, b) => {
+    const aMin = a.minAmount ?? 0
+    const bMin = b.minAmount ?? 0
+    return aMin - bMin
+  })
+
+  const sharedFields = {
     highPriority: 0,
     isCompleted: 0,
-    status: 'PENDING',
-    benefitCategoryId: payload.benefitCategoryId,
-    benefitAmount: payload.benefitAmount.toString(),
-    benefitDescription: payload.benefitDescription,
-    benefitPayPlatformId: payload.benefitPayPlatformId,
-    benefitUsagePlatformId: payload.benefitUsagePlatformId,
-    activityCategoryId: payload.activityCategoryId,
+    status: 'PENDING' as const,
     publisher: null,
     publishTime: null,
     likes: 0,
     addCount: 0,
-    participationDifficulty: payload.participationDifficulty,
-    extraConditionsText: payload.extraConditionsText,
-    guideText: payload.guideText,
-    requiresQualify: payload.requiresQualify ? 1 : 0,
-    qualifyCycle: payload.qualifyCycle,
-    tierMode: payload.tierMode,
-    tiers: payload.tiers,
-    qualifyDeadline: payload.qualifyDeadline ? toTimestamp(payload.qualifyDeadline) : null,
     createdAt: Date.now(),
+  }
+
+  const firstResult = await db.insert(taskTemplate).values({
+    ...toTemplateMutation(sortedTemplates[0], effectiveTierExclusive),
+    ...sharedFields,
   })
 
-  const createdId = Number((insertResult as unknown as [{ insertId: number }])[0].insertId)
-  if (!createdId) {
+  const rootId = Number((firstResult as unknown as [{ insertId: number }])[0].insertId)
+  if (!rootId) {
     throw createError({ statusCode: 500, statusMessage: '创建失败：未获取到自增 ID' })
   }
 
+  await db.update(taskTemplate)
+    .set({ rootTemplateId: rootId })
+    .where(eq(taskTemplate.id, rootId))
+
+  const createdIds: number[] = [rootId]
+
+  for (let i = 1; i < sortedTemplates.length; i++) {
+    const result = await db.insert(taskTemplate).values({
+      ...toTemplateMutation(sortedTemplates[i], effectiveTierExclusive),
+      rootTemplateId: rootId,
+      ...sharedFields,
+    })
+    const id = Number((result as unknown as [{ insertId: number }])[0].insertId)
+    if (id) createdIds.push(id)
+  }
+
   return {
-    id: createdId,
-    title: payload.title,
+    rootId,
+    ids: createdIds,
+    title: sortedTemplates[0].title,
   }
 })

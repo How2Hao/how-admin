@@ -397,6 +397,11 @@ export const taskTemplate = mysqlTable('task_template', {
   participationDifficulty: varchar('participation_difficulty', { length: 16 }),
   extraConditionsText: text('extra_conditions_text'),
   guideText: text('guide_text'),
+  rootTemplateId: int('root_template_id'),
+  tierExclusive: tinyint('tier_exclusive'),
+  minAmount: decimal('min_amount', { precision: 10, scale: 2 }),
+  minCount: int('min_count'),
+  // @deprecated 第一轮字段，新代码不读不写
   requiresQualify: tinyint('requires_qualify').default(0).notNull(),
   qualifyCycle: mysqlEnum('qualify_cycle', ['SAME_MONTH', 'PREV_MONTH']),
   tierMode: mysqlEnum('tier_mode', ['NONE', 'INDEPENDENT', 'EXCLUSIVE']).default('NONE').notNull(),
@@ -406,6 +411,7 @@ export const taskTemplate = mysqlTable('task_template', {
   updatedAt: datetime('updated_at', { mode: 'string' }).default(sql`(CURRENT_TIMESTAMP)`).notNull(),
 }, table => [
   index('idx_activity_category').on(table.activityCategoryId),
+  index('idx_template_root').on(table.rootTemplateId),
   primaryKey({ columns: [table.id], name: 'task_template_id' }),
 ])
 

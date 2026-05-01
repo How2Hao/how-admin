@@ -3,7 +3,7 @@ import { createAgent, toolStrategy } from 'langchain'
 import { buildContent } from './content/buildContent'
 import { DeepSeekModel } from './models/deepseek'
 import systemPrompt from './prompts/system.md?raw'
-import { getBankTaskSchema } from './schemas/bankTask'
+import { getBankTaskGroupSchema } from './schemas/bankTask'
 import { ocrAgent } from './subagents/ocr'
 import { getActivityCategoryIdTool } from './tools/getActivityCategoryId.tool'
 import { getBankCardTemplateIdTool } from './tools/getBankCardTemplateId.tool'
@@ -26,7 +26,7 @@ export async function runAgent(result: ParserWebByURLResult) {
   }
 
   const content = buildContent(markdown, ocrResults)
-  const bankTaskSchema = getBankTaskSchema()
+  const bankTaskSchema = getBankTaskGroupSchema()
 
   // The main parser contract is one primary activity per article.
   const bankTaskAgent = createAgent({

@@ -1,9 +1,50 @@
 import type { Ref } from 'vue'
-import type { BankTaskFormData, BankTaskPayload, SelectOption } from '@/types/bankCardActivities'
+import type { BankTaskFormData, BankTaskPayload, BankTaskTierForm, SelectOption } from '@/types/bankCardActivities'
 
-export interface BankTaskLikeData extends Omit<BankTaskPayload, 'benefitAmount'> {
-  benefitAmount: number | null
+/** AI 解析或后端返回的"模板组"形态，用于 fillForm */
+export interface BankTaskLikeData {
+  templates: Array<{
+    title: string
+    ruleBrief: string | null
+    ruleDetail: string | null
+    bankId: number
+    bankCardOrganization: number | null
+    bankCardTemplateId: number | null
+    bankCardType: 'CREDIT' | 'DEBIT'
+    regionCode: string
+    regionMatchStrategy: 'EXACT' | 'EXCLUDE_PLAN_SINGLE_CITY'
+    repeatType: 'ONE_TIME' | 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'YEARLY'
+    daysOfWeek: number[] | null
+    yearlyMonths: number[] | null
+    daysOfMonth: number[] | null
+    yearlyDaysOfMonth: number[] | null
+    frequencyControl: string | null
+    reminderTime: string
+    startDate: string
+    endDate: string
+    benefitAmount: number | null
+    benefitDescription: string | null
+    extraConditionsText: string | null
+    benefitCategoryId: number | null
+    benefitPayPlatformId: number | null
+    benefitUsagePlatformId: number | null
+    activityCategoryId: number | null
+    participationDifficulty: string | null
+    guideText: string | null
+    minAmount: number | null
+    minCount: number | null
+  }>
+  tierExclusive: boolean | null
   id?: number
+}
+
+function makeEmptyTier(): BankTaskTierForm {
+  return {
+    minAmount: null,
+    minCount: null,
+    benefitAmount: null,
+    benefitDescription: '',
+  }
 }
 
 export function createEmptyBankTaskForm(): BankTaskFormData {
@@ -26,8 +67,6 @@ export function createEmptyBankTaskForm(): BankTaskFormData {
     reminderTime: '10:00',
     startDate: '',
     endDate: '',
-    benefitAmount: null,
-    benefitDescription: '',
     extraConditionsText: '',
     benefitCategoryId: null,
     benefitPayPlatformId: null,
@@ -35,11 +74,8 @@ export function createEmptyBankTaskForm(): BankTaskFormData {
     activityCategoryId: null,
     participationDifficulty: '',
     guideText: '',
-    requiresQualify: false,
-    qualifyCycle: null,
-    tierMode: 'NONE',
-    tiers: [],
-    qualifyDeadline: '',
+    tierExclusive: null,
+    tiers: [makeEmptyTier()],
   }
 }
 
@@ -111,38 +147,46 @@ export function useBankCardActivityForm() {
   }
 
   function fillForm(payload: BankTaskLikeData) {
-    form.title = payload.title
-    form.ruleBrief = payload.ruleBrief ?? ''
-    form.ruleDetail = payload.ruleDetail ?? ''
-    form.bankId = payload.bankId
-    form.bankCardOrganization = payload.bankCardOrganization ?? 1
-    form.bankCardTemplateId = payload.bankCardTemplateId
-    form.bankCardType = payload.bankCardType
-    form.regionCode = payload.regionCode ?? '100000'
-    form.regionMatchStrategy = payload.regionMatchStrategy ?? 'EXACT'
-    form.repeatType = payload.repeatType
-    form.daysOfWeek = payload.daysOfWeek ?? []
-    form.yearlyMonths = payload.yearlyMonths ?? []
-    form.daysOfMonth = payload.daysOfMonth ?? []
-    form.yearlyDaysOfMonth = payload.yearlyDaysOfMonth ?? []
-    form.frequencyControl = payload.frequencyControl ?? ''
-    form.reminderTime = payload.reminderTime
-    form.startDate = payload.startDate
-    form.endDate = payload.endDate
-    form.benefitAmount = payload.benefitAmount
-    form.benefitDescription = payload.benefitDescription ?? ''
-    form.extraConditionsText = payload.extraConditionsText ?? ''
-    form.benefitCategoryId = payload.benefitCategoryId
-    form.benefitPayPlatformId = payload.benefitPayPlatformId
-    form.benefitUsagePlatformId = payload.benefitUsagePlatformId
-    form.activityCategoryId = payload.activityCategoryId
-    form.participationDifficulty = payload.participationDifficulty ?? ''
-    form.guideText = payload.guideText ?? ''
-    form.requiresQualify = (payload as any).requiresQualify ?? false
-    form.qualifyCycle = (payload as any).qualifyCycle ?? null
-    form.tierMode = (payload as any).tierMode ?? 'NONE'
-    form.tiers = (payload as any).tiers ?? []
-    form.qualifyDeadline = (payload as any).qualifyDeadline ?? ''
+    if (!payload.templates || payload.templates.length === 0) {
+      resetForm()
+      return
+    }
+    const head = payload.templates[0]
+    form.title = head.title
+    form.ruleBrief = head.ruleBrief ?? ''
+    form.ruleDetail = head.ruleDetail ?? ''
+    form.bankId = head.bankId
+    form.bankCardOrganization = head.bankCardOrganization ?? 1
+    form.bankCardTemplateId = head.bankCardTemplateId
+    form.bankCardType = head.bankCardType
+    form.regionCode = head.regionCode ?? '100000'
+    form.regionMatchStrategy = head.regionMatchStrategy ?? 'EXACT'
+    form.repeatType = head.repeatType
+    form.daysOfWeek = head.daysOfWeek ?? []
+    form.yearlyMonths = head.yearlyMonths ?? []
+    form.daysOfMonth = head.daysOfMonth ?? []
+    form.yearlyDaysOfMonth = head.yearlyDaysOfMonth ?? []
+    form.frequencyControl = head.frequencyControl ?? ''
+    form.reminderTime = head.reminderTime
+    form.startDate = head.startDate
+    form.endDate = head.endDate
+    form.extraConditionsText = head.extraConditionsText ?? ''
+    form.benefitCategoryId = head.benefitCategoryId
+    form.benefitPayPlatformId = head.benefitPayPlatformId
+    form.benefitUsagePlatformId = head.benefitUsagePlatformId
+    form.activityCategoryId = head.activityCategoryId
+    form.participationDifficulty = head.participationDifficulty ?? ''
+    form.guideText = head.guideText ?? ''
+    form.tierExclusive = payload.tierExclusive ?? null
+    form.tiers = payload.templates.map(tpl => ({
+      minAmount: tpl.minAmount,
+      minCount: tpl.minCount,
+      benefitAmount: tpl.benefitAmount,
+      benefitDescription: tpl.benefitDescription ?? '',
+    }))
+    if (form.tiers.length === 0) {
+      form.tiers = [makeEmptyTier()]
+    }
 
     cleanupRepeatFields()
   }
@@ -150,7 +194,7 @@ export function useBankCardActivityForm() {
   function buildPayload(): BankTaskPayload {
     cleanupRepeatFields()
 
-    return {
+    const baseTemplate = {
       title: form.title.trim(),
       ruleBrief: normalizeNullableString(form.ruleBrief),
       ruleDetail: normalizeNullableString(form.ruleDetail),
@@ -169,8 +213,6 @@ export function useBankCardActivityForm() {
       reminderTime: form.reminderTime.trim(),
       startDate: form.startDate.trim(),
       endDate: form.endDate.trim(),
-      benefitAmount: form.benefitAmount ?? 0,
-      benefitDescription: normalizeNullableString(form.benefitDescription),
       extraConditionsText: normalizeNullableString(form.extraConditionsText),
       benefitCategoryId: form.benefitCategoryId,
       benefitPayPlatformId: form.benefitPayPlatformId,
@@ -178,18 +220,20 @@ export function useBankCardActivityForm() {
       activityCategoryId: form.activityCategoryId,
       participationDifficulty: normalizeNullableString(form.participationDifficulty),
       guideText: normalizeNullableString(form.guideText),
-      requiresQualify: form.requiresQualify,
-      qualifyCycle: form.requiresQualify ? form.qualifyCycle : null,
-      tierMode: form.tierMode,
-      tiers: form.requiresQualify && form.tiers.length > 0
-        ? form.tiers.map(tier => ({
-            minAmount: tier.minAmount,
-            minCount: tier.minCount,
-            benefitAmount: tier.benefitAmount ?? 0,
-            benefitDescription: tier.benefitDescription.trim(),
-          }))
-        : null,
-      qualifyDeadline: form.qualifyDeadline.trim() || null,
+    }
+
+    const tiers = form.tiers.length > 0 ? form.tiers : [makeEmptyTier()]
+    const templates = tiers.map(tier => ({
+      ...baseTemplate,
+      benefitAmount: tier.benefitAmount ?? 0,
+      benefitDescription: normalizeNullableString(tier.benefitDescription),
+      minAmount: tier.minAmount,
+      minCount: tier.minCount,
+    }))
+
+    return {
+      templates,
+      tierExclusive: tiers.length > 1 ? form.tierExclusive : null,
     } as BankTaskPayload
   }
 
@@ -224,9 +268,6 @@ export function useBankCardActivityForm() {
     if (!form.endDate.trim()) {
       return '请填写结束时间'
     }
-    if (form.benefitAmount === null || Number.isNaN(form.benefitAmount)) {
-      return '请填写预估收益'
-    }
 
     const startDate = new Date(form.startDate.replace(' ', 'T')).getTime()
     const endDate = new Date(form.endDate.replace(' ', 'T')).getTime()
@@ -253,24 +294,19 @@ export function useBankCardActivityForm() {
       return '每年触发月份和日期数量需要一一对应'
     }
 
-    if (form.requiresQualify) {
-      if (!form.qualifyCycle) {
-        return '请选择达标周期（本月达标本月用 / 上月达标本月用）'
+    if (form.tiers.length === 0) {
+      return '至少要配置一档优惠'
+    }
+    for (const [idx, tier] of form.tiers.entries()) {
+      if (tier.benefitAmount == null) {
+        return `第 ${idx + 1} 档的优惠金额必填`
       }
-      if (form.tiers.length === 0) {
-        return '需要达标的活动至少要配置一档优惠'
+      if (!tier.benefitDescription.trim()) {
+        return `第 ${idx + 1} 档的优惠描述必填`
       }
-      for (const [idx, tier] of form.tiers.entries()) {
-        if (tier.minAmount == null && tier.minCount == null) {
-          return `第 ${idx + 1} 档至少需要填一个门槛（金额或笔数）`
-        }
-        if (tier.benefitAmount == null) {
-          return `第 ${idx + 1} 档的优惠金额必填`
-        }
-        if (!tier.benefitDescription.trim()) {
-          return `第 ${idx + 1} 档的优惠描述必填`
-        }
-      }
+    }
+    if (form.tiers.length > 1 && form.tierExclusive === null) {
+      return '多档活动需要选择是否互斥取一'
     }
 
     return null

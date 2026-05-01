@@ -4,7 +4,7 @@ import { defineHandler } from 'nitro'
 import { referenceData } from '~~/agent/utils/referenceData'
 import { db } from '~~/db'
 import { getBankTaskCreateSchema } from '~~/utils/bankCardActivityForm'
-import { parseTaskTemplateId, toTaskTemplateMutation } from '~~/utils/taskTemplate'
+import { parseTaskTemplateId, toTemplateMutation } from '~~/utils/taskTemplate'
 import { taskTemplate } from '../../../../drizzle/schema'
 
 export default defineHandler(async (event) => {
@@ -21,7 +21,8 @@ export default defineHandler(async (event) => {
     })
   }
 
-  const [existing] = await db.select({ id: taskTemplate.id }).from(taskTemplate).where(eq(taskTemplate.id, id)).limit(1)
+  const [existing] = await db.select({ id: taskTemplate.id, rootTemplateId: taskTemplate.rootTemplateId })
+    .from(taskTemplate).where(eq(taskTemplate.id, id)).limit(1)
 
   if (!existing) {
     throw createError({
@@ -30,15 +31,28 @@ export default defineHandler(async (event) => {
     })
   }
 
-  const payload = parsed.data
+  // 编辑当前档：用 templates[0] 作为本档新内容，不动 root_template_id；
+  // tier_exclusive 同步更新到同组所有档（按当前 PUT 提交的值）。
+  const { templates, tierExclusive } = parsed.data
+  const effectiveTierExclusive = templates.length > 1 || (existing.rootTemplateId && existing.rootTemplateId !== id)
+    ? tierExclusive
+    : null
 
   await db.update(taskTemplate).set({
-    ...toTaskTemplateMutation(payload),
+    ...toTemplateMutation(templates[0], effectiveTierExclusive),
     updatedAt: sql`CURRENT_TIMESTAMP`,
   }).where(eq(taskTemplate.id, id))
 
+  // 主档变更 tier_exclusive 时同步给同组其他档
+  const rootId = existing.rootTemplateId ?? id
+  if (rootId === id && effectiveTierExclusive !== null) {
+    await db.update(taskTemplate)
+      .set({ tierExclusive: effectiveTierExclusive ? 1 : 0 })
+      .where(eq(taskTemplate.rootTemplateId, rootId))
+  }
+
   return {
     id,
-    title: payload.title,
+    title: templates[0].title,
   }
 })

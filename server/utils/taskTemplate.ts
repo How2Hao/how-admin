@@ -1,5 +1,5 @@
 import type { taskTemplate } from '../../drizzle/schema'
-import type { BankTaskCreateInput } from './bankCardActivityForm'
+import type { BankTaskCreateInput, BankTemplateInput } from './bankCardActivityForm'
 import { createError } from 'h3'
 import { serializeNumberArray, toTimestamp } from './bankCardActivityForm'
 
@@ -38,43 +38,42 @@ export function formatTimestamp(value: number | null) {
   ].join(':')}`
 }
 
-export function toTaskTemplateMutation(payload: BankTaskCreateInput) {
+/** 单档原子的 insert payload。tierExclusive / rootTemplateId 由调用方在 batch 写入时设置。 */
+export function toTemplateMutation(tpl: BankTemplateInput, tierExclusive: boolean | null) {
   return {
-    title: payload.title,
-    ruleBrief: payload.ruleBrief,
-    ruleDetail: payload.ruleDetail,
+    title: tpl.title,
+    ruleBrief: tpl.ruleBrief,
+    ruleDetail: tpl.ruleDetail,
     ruleSource: null,
     date: null,
-    bankId: payload.bankId,
-    bankCardOrganization: String(payload.bankCardOrganization),
-    bankCardTemplateId: payload.bankCardTemplateId,
-    bankCardType: payload.bankCardType,
+    bankId: tpl.bankId,
+    bankCardOrganization: String(tpl.bankCardOrganization),
+    bankCardTemplateId: tpl.bankCardTemplateId,
+    bankCardType: tpl.bankCardType,
     bankCardLevel: null,
-    regionCode: payload.regionCode,
-    regionMatchStrategy: payload.regionMatchStrategy,
-    repeatType: payload.repeatType,
-    reminderTime: payload.reminderTime,
-    startDate: toTimestamp(payload.startDate),
-    endDate: toTimestamp(payload.endDate),
-    daysOfWeek: serializeNumberArray(payload.daysOfWeek),
-    yearlyMonths: serializeNumberArray(payload.yearlyMonths),
-    daysOfMonth: serializeNumberArray(payload.daysOfMonth),
-    yearlyDaysOfMonth: serializeNumberArray(payload.yearlyDaysOfMonth),
-    frequencyControl: payload.frequencyControl,
-    benefitCategoryId: payload.benefitCategoryId,
-    benefitAmount: payload.benefitAmount.toString(),
-    benefitDescription: payload.benefitDescription,
-    benefitPayPlatformId: payload.benefitPayPlatformId,
-    benefitUsagePlatformId: payload.benefitUsagePlatformId,
-    activityCategoryId: payload.activityCategoryId,
-    participationDifficulty: payload.participationDifficulty,
-    extraConditionsText: payload.extraConditionsText,
-    guideText: payload.guideText,
-    requiresQualify: payload.requiresQualify ? 1 : 0,
-    qualifyCycle: payload.qualifyCycle,
-    tierMode: payload.tierMode,
-    tiers: payload.tiers,
-    qualifyDeadline: payload.qualifyDeadline ? toTimestamp(payload.qualifyDeadline) : null,
+    regionCode: tpl.regionCode,
+    regionMatchStrategy: tpl.regionMatchStrategy,
+    repeatType: tpl.repeatType,
+    reminderTime: tpl.reminderTime,
+    startDate: toTimestamp(tpl.startDate),
+    endDate: toTimestamp(tpl.endDate),
+    daysOfWeek: serializeNumberArray(tpl.daysOfWeek),
+    yearlyMonths: serializeNumberArray(tpl.yearlyMonths),
+    daysOfMonth: serializeNumberArray(tpl.daysOfMonth),
+    yearlyDaysOfMonth: serializeNumberArray(tpl.yearlyDaysOfMonth),
+    frequencyControl: tpl.frequencyControl,
+    benefitCategoryId: tpl.benefitCategoryId,
+    benefitAmount: tpl.benefitAmount.toString(),
+    benefitDescription: tpl.benefitDescription,
+    benefitPayPlatformId: tpl.benefitPayPlatformId,
+    benefitUsagePlatformId: tpl.benefitUsagePlatformId,
+    activityCategoryId: tpl.activityCategoryId,
+    participationDifficulty: tpl.participationDifficulty,
+    extraConditionsText: tpl.extraConditionsText,
+    guideText: tpl.guideText,
+    minAmount: tpl.minAmount === null ? null : tpl.minAmount.toString(),
+    minCount: tpl.minCount,
+    tierExclusive: tierExclusive === null ? null : (tierExclusive ? 1 : 0),
   }
 }
 
@@ -108,11 +107,12 @@ export function toTaskTemplateDetail(row: TaskTemplateRow) {
     activityCategoryId: row.activityCategoryId,
     participationDifficulty: row.participationDifficulty,
     guideText: row.guideText,
-    requiresQualify: Boolean(row.requiresQualify),
-    qualifyCycle: row.qualifyCycle,
-    tierMode: row.tierMode,
-    tiers: row.tiers,
-    qualifyDeadline: formatTimestamp(row.qualifyDeadline),
+    rootTemplateId: row.rootTemplateId ?? row.id,
+    tierExclusive: row.tierExclusive === null || row.tierExclusive === undefined
+      ? null
+      : Number(row.tierExclusive) === 1,
+    minAmount: row.minAmount === null ? null : Number(row.minAmount),
+    minCount: row.minCount,
   }
 }
 

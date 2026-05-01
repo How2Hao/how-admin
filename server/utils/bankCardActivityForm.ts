@@ -1,5 +1,5 @@
 import * as z from 'zod'
-import { getBankTaskSchema } from '../agent/schemas/bankTask'
+import { getBankTaskGroupSchema, getBankTemplateSchema } from '../agent/schemas/bankTask'
 import { referenceData } from '../agent/utils/referenceData'
 
 export const bankCardTypeOptions = [
@@ -35,91 +35,95 @@ export function getBankTaskCreateSchema() {
 }
 
 function buildBankTaskCreateSchema() {
-  return getBankTaskSchema().superRefine((value, ctx) => {
-  const startDate = parseDateTimeString(value.startDate)
-  const endDate = parseDateTimeString(value.endDate)
-
-  if (!dateTimePattern.test(value.startDate) || Number.isNaN(startDate)) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: 'startDate 格式必须为 YYYY-MM-DD 或 YYYY-MM-DD HH:mm:ss',
-      path: ['startDate'],
-    })
-  }
-
-  if (!dateTimePattern.test(value.endDate) || Number.isNaN(endDate)) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: 'endDate 格式必须为 YYYY-MM-DD 或 YYYY-MM-DD HH:mm:ss',
-      path: ['endDate'],
-    })
-  }
-
-  if (!reminderTimePattern.test(value.reminderTime)) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: 'reminderTime 格式必须为 HH:mm',
-      path: ['reminderTime'],
-    })
-  }
-
-  if (!Number.isNaN(startDate) && !Number.isNaN(endDate) && startDate > endDate) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: '结束时间不能早于开始时间',
-      path: ['endDate'],
-    })
-  }
-
-  if (value.repeatType === 'WEEKLY' && (!value.daysOfWeek || value.daysOfWeek.length === 0)) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: 'WEEKLY 类型必须提供 daysOfWeek',
-      path: ['daysOfWeek'],
-    })
-  }
-
-  if (value.repeatType === 'MONTHLY' && (!value.daysOfMonth || value.daysOfMonth.length === 0)) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: 'MONTHLY 类型必须提供 daysOfMonth',
-      path: ['daysOfMonth'],
-    })
-  }
-
-  if (value.repeatType === 'YEARLY') {
-    if (!value.yearlyMonths || value.yearlyMonths.length === 0) {
+  return getBankTaskGroupSchema().superRefine((value, ctx) => {
+    if (value.templates.length > 1 && value.tierExclusive === null) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: 'YEARLY 类型必须提供 yearlyMonths',
-        path: ['yearlyMonths'],
+        message: '多档活动必须填 tierExclusive（互斥取一/独立达成）',
+        path: ['tierExclusive'],
       })
     }
 
-    if (!value.yearlyDaysOfMonth || value.yearlyDaysOfMonth.length === 0) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'YEARLY 类型必须提供 yearlyDaysOfMonth',
-        path: ['yearlyDaysOfMonth'],
-      })
-    }
+    value.templates.forEach((tpl, idx) => {
+      const startDate = parseDateTimeString(tpl.startDate)
+      const endDate = parseDateTimeString(tpl.endDate)
+      const path = (key: string) => ['templates', idx, key]
 
-    if (
-      value.yearlyMonths
-      && value.yearlyDaysOfMonth
-      && value.yearlyMonths.length !== value.yearlyDaysOfMonth.length
-    ) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'yearlyMonths 与 yearlyDaysOfMonth 长度必须一致',
-        path: ['yearlyDaysOfMonth'],
-      })
-    }
-  }
+      if (!dateTimePattern.test(tpl.startDate) || Number.isNaN(startDate)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'startDate 格式必须为 YYYY-MM-DD 或 YYYY-MM-DD HH:mm:ss',
+          path: path('startDate'),
+        })
+      }
+      if (!dateTimePattern.test(tpl.endDate) || Number.isNaN(endDate)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'endDate 格式必须为 YYYY-MM-DD 或 YYYY-MM-DD HH:mm:ss',
+          path: path('endDate'),
+        })
+      }
+      if (!reminderTimePattern.test(tpl.reminderTime)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'reminderTime 格式必须为 HH:mm',
+          path: path('reminderTime'),
+        })
+      }
+      if (!Number.isNaN(startDate) && !Number.isNaN(endDate) && startDate > endDate) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: '结束时间不能早于开始时间',
+          path: path('endDate'),
+        })
+      }
+      if (tpl.repeatType === 'WEEKLY' && (!tpl.daysOfWeek || tpl.daysOfWeek.length === 0)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'WEEKLY 类型必须提供 daysOfWeek',
+          path: path('daysOfWeek'),
+        })
+      }
+      if (tpl.repeatType === 'MONTHLY' && (!tpl.daysOfMonth || tpl.daysOfMonth.length === 0)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'MONTHLY 类型必须提供 daysOfMonth',
+          path: path('daysOfMonth'),
+        })
+      }
+      if (tpl.repeatType === 'YEARLY') {
+        if (!tpl.yearlyMonths || tpl.yearlyMonths.length === 0) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'YEARLY 类型必须提供 yearlyMonths',
+            path: path('yearlyMonths'),
+          })
+        }
+        if (!tpl.yearlyDaysOfMonth || tpl.yearlyDaysOfMonth.length === 0) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'YEARLY 类型必须提供 yearlyDaysOfMonth',
+            path: path('yearlyDaysOfMonth'),
+          })
+        }
+        if (
+          tpl.yearlyMonths
+          && tpl.yearlyDaysOfMonth
+          && tpl.yearlyMonths.length !== tpl.yearlyDaysOfMonth.length
+        ) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'yearlyMonths 与 yearlyDaysOfMonth 长度必须一致',
+            path: path('yearlyDaysOfMonth'),
+          })
+        }
+      }
+    })
   })
 }
 
 export type BankTaskCreateInput = z.infer<ReturnType<typeof buildBankTaskCreateSchema>>
+export type BankTemplateInput = z.infer<ReturnType<typeof getBankTemplateSchema>>
 
 export function getReferenceOptions() {
   return {
