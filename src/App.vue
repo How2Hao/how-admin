@@ -63,6 +63,12 @@ const activeMenu = computed(() => route.path)
             </template>
             卡片模板
           </t-menu-item>
+          <t-menu-item value="/usage-platforms" to="/usage-platforms">
+            <template #icon>
+              <div i-carbon:application mr-3 />
+            </template>
+            使用平台
+          </t-menu-item>
           <t-submenu value="users">
             <template #icon>
               <div i-carbon:user-multiple mr-3 />
