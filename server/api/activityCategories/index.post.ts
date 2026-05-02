@@ -23,6 +23,19 @@ export default defineHandler(async (event) => {
   if (!body?.name?.trim())
     throw createError({ statusCode: 400, statusMessage: 'name 不能为空' })
 
+  // Pre-validate icon before any DB I/O so we can reject cleanly
+  let iconBuf: Buffer | null = null
+  if (body.iconBase64?.trim()) {
+    const m = /^data:[^;]+;base64,(.+)$/.exec(body.iconBase64)
+    if (!m)
+      throw createError({ statusCode: 400, statusMessage: 'iconBase64 不是合法 data URL' })
+    iconBuf = Buffer.from(m[1], 'base64')
+    if (iconBuf.byteLength === 0)
+      throw createError({ statusCode: 400, statusMessage: 'iconBase64 解析后内容为空' })
+    if (iconBuf.byteLength > 5 * 1024 * 1024)
+      throw createError({ statusCode: 413, statusMessage: '图标超过 5MB 限制' })
+  }
+
   // Validate parentId: target must exist and be a top-level category
   if (body.parentId != null) {
     const [parent] = await db
@@ -34,18 +47,6 @@ export default defineHandler(async (event) => {
       throw createError({ statusCode: 400, statusMessage: '父分类不存在' })
     if (parent.parentId !== null)
       throw createError({ statusCode: 400, statusMessage: '父分类必须是顶级分类' })
-  }
-
-  let iconBuf: Buffer | null = null
-  if (body.iconBase64?.trim()) {
-    const m = /^data:[^;]+;base64,(.+)$/.exec(body.iconBase64)
-    if (!m)
-      throw createError({ statusCode: 400, statusMessage: 'iconBase64 不是合法 data URL' })
-    iconBuf = Buffer.from(m[1], 'base64')
-    if (iconBuf.byteLength === 0)
-      throw createError({ statusCode: 400, statusMessage: 'iconBase64 解析后内容为空' })
-    if (iconBuf.byteLength > 5 * 1024 * 1024)
-      throw createError({ statusCode: 413, statusMessage: '图标超过 5MB 限制' })
   }
 
   let id: number
