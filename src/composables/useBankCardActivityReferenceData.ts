@@ -34,6 +34,8 @@ export function useBankCardActivityReferenceData() {
 
   async function loadReferenceOptions() {
     referenceOptions.value = await requestJson<ReferenceOptionsResponse>('/api/bankCardActivities/web/referenceOptions')
+    benefitUsagePlatformOptions.value = referenceOptions.value?.benefitUsagePlatforms ?? []
+    activityCategoryOptions.value = referenceOptions.value?.activityCategories ?? []
   }
 
   async function searchBanks(keyword: string) {

@@ -57,6 +57,7 @@ export default defineHandler(async (event) => {
       ? {
           label: activityCategory.name,
           value: activityCategory.id,
+          icon: activityCategory.icon,
         }
       : null,
   }

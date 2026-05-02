@@ -145,6 +145,17 @@ export function getReferenceOptions() {
       code: item.code,
       icon: item.icon,
     })),
+    benefitUsagePlatforms: referenceData.benefitUsagePlatforms.map(item => ({
+      label: item.name,
+      value: item.id,
+      code: item.code,
+      icon: item.icon,
+    })),
+    activityCategories: referenceData.activityCategories.map(item => ({
+      label: item.name,
+      value: item.id,
+      icon: item.icon,
+    })),
     enums: {
       bankCardType: bankCardTypeOptions,
       regionMatchStrategy: regionMatchStrategyOptions,

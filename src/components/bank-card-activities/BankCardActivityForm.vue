@@ -157,16 +157,20 @@ function removeTier(index: number) {
           v-model="bankIdModel"
           filterable
           clearable
-          :options="bankSelectOptions"
           placeholder="搜索银行名称"
           @search="emit('searchBanks', $event)"
         >
-          <template #option="{ option }">
+          <t-option
+            v-for="opt in bankSelectOptions"
+            :key="opt.value"
+            :value="opt.value"
+            :label="opt.label"
+          >
             <div class="flex items-center gap-1.5">
-              <img v-if="option.icon" :src="option.icon" class="w-4 h-4 object-contain rounded-sm flex-shrink-0">
-              <span>{{ option.label }}</span>
+              <img v-if="opt.icon" :src="opt.icon" class="w-4 h-4 object-contain rounded-sm flex-shrink-0">
+              <span>{{ opt.label }}</span>
             </div>
-          </template>
+          </t-option>
         </t-select>
       </t-form-item>
       <t-form-item label="银行卡组织">
@@ -274,47 +278,67 @@ function removeTier(index: number) {
 
     <div class="gap-4 grid md:grid-cols-2">
       <t-form-item label="优惠分类">
-        <t-select v-model="benefitCategoryIdModel" clearable :options="benefitCategoryOptions" />
+        <t-select v-model="benefitCategoryIdModel" clearable filterable>
+          <t-option
+            v-for="opt in benefitCategoryOptions"
+            :key="opt.value"
+            :value="opt.value"
+            :label="opt.label"
+          >
+            <div class="flex items-center gap-1.5">
+              <img v-if="opt.icon" :src="opt.icon" class="w-4 h-4 object-contain rounded-sm flex-shrink-0">
+              <span>{{ opt.label }}</span>
+            </div>
+          </t-option>
+        </t-select>
       </t-form-item>
       <t-form-item label="支付平台">
-        <t-select v-model="benefitPayPlatformIdModel" clearable :options="benefitPayPlatformOptions">
-          <template #option="{ option }">
+        <t-select v-model="benefitPayPlatformIdModel" clearable filterable>
+          <t-option
+            v-for="opt in benefitPayPlatformOptions"
+            :key="opt.value"
+            :value="opt.value"
+            :label="opt.label"
+          >
             <div class="flex items-center gap-1.5">
-              <img v-if="option.icon" :src="option.icon" class="w-4 h-4 object-contain rounded-sm flex-shrink-0">
-              <span>{{ option.label }}</span>
+              <img v-if="opt.icon" :src="opt.icon" class="w-4 h-4 object-contain rounded-sm flex-shrink-0">
+              <span>{{ opt.label }}</span>
             </div>
-          </template>
+          </t-option>
         </t-select>
       </t-form-item>
     </div>
 
     <div class="gap-4 grid md:grid-cols-2">
       <t-form-item label="使用平台">
-        <t-select
-          v-model="benefitUsagePlatformIdModel"
-          filterable
-          clearable
-          :options="benefitUsagePlatformSelectOptions"
-          placeholder="搜索优惠使用平台"
-          @search="emit('searchBenefitUsagePlatforms', $event)"
-        >
-          <template #option="{ option }">
+        <t-select v-model="benefitUsagePlatformIdModel" clearable filterable placeholder="选择使用平台">
+          <t-option
+            v-for="opt in benefitUsagePlatformSelectOptions"
+            :key="opt.value"
+            :value="opt.value"
+            :label="opt.label"
+          >
             <div class="flex items-center gap-1.5">
-              <img v-if="option.icon" :src="option.icon" class="w-4 h-4 object-contain rounded-sm flex-shrink-0">
-              <span>{{ option.label }}</span>
+              <img v-if="opt.icon" :src="opt.icon" class="w-4 h-4 object-contain rounded-sm flex-shrink-0">
+              <span>{{ opt.label }}</span>
             </div>
-          </template>
+          </t-option>
         </t-select>
       </t-form-item>
       <t-form-item label="活动分类">
-        <t-select
-          v-model="activityCategoryIdModel"
-          filterable
-          clearable
-          :options="activityCategorySelectOptions"
-          placeholder="搜索活动分类"
-          @search="emit('searchActivityCategories', $event)"
-        />
+        <t-select v-model="activityCategoryIdModel" clearable filterable placeholder="选择活动分类">
+          <t-option
+            v-for="opt in activityCategorySelectOptions"
+            :key="opt.value"
+            :value="opt.value"
+            :label="opt.label"
+          >
+            <div class="flex items-center gap-1.5">
+              <img v-if="opt.icon" :src="opt.icon" class="w-4 h-4 object-contain rounded-sm flex-shrink-0">
+              <span>{{ opt.label }}</span>
+            </div>
+          </t-option>
+        </t-select>
       </t-form-item>
     </div>
 
