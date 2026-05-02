@@ -79,6 +79,9 @@ onMounted(fetchList)
           <img v-if="row.icon" :src="row.icon" class="w-8 h-8 object-contain rounded">
           <span v-else class="text-gray-400">-</span>
         </template>
+        <template #createdAt="{ row }">
+          <span>{{ row.createdAt ? row.createdAt.slice(0, 16).replace('T', ' ') : '-' }}</span>
+        </template>
         <template #actions="{ row }">
           <t-button size="small" variant="outline" @click="openEdit(row)">
             编辑

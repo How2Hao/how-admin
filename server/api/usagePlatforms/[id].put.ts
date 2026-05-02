@@ -48,13 +48,15 @@ export default defineHandler(async (event) => {
     if (!m)
       throw createError({ statusCode: 400, statusMessage: 'iconBase64 不是合法 data URL' })
     const buf = Buffer.from(m[1], 'base64')
-    if (buf.byteLength > 0 && buf.byteLength <= 5 * 1024 * 1024) {
-      try {
-        update.icon = await uploadFile(`usage_platform/${id}.png`, buf)
-      }
-      catch (e: any) {
-        throw createError({ statusCode: 500, statusMessage: `图标上传失败：${e?.message ?? e}` })
-      }
+    if (buf.byteLength === 0)
+      throw createError({ statusCode: 400, statusMessage: 'iconBase64 解析后内容为空' })
+    if (buf.byteLength > 5 * 1024 * 1024)
+      throw createError({ statusCode: 413, statusMessage: '图标超过 5MB 限制' })
+    try {
+      update.icon = await uploadFile(`usage_platform/${id}.png`, buf)
+    }
+    catch (e: any) {
+      throw createError({ statusCode: 500, statusMessage: `图标上传失败：${e?.message ?? e}` })
     }
   }
 

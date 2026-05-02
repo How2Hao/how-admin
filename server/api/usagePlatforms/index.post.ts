@@ -21,6 +21,19 @@ export default defineHandler(async (event) => {
   if (!body?.name?.trim())
     throw createError({ statusCode: 400, statusMessage: 'name 不能为空' })
 
+  // Pre-validate icon before DB insert so we can reject cleanly
+  let iconBuf: Buffer | null = null
+  if (body.iconBase64?.trim()) {
+    const m = /^data:[^;]+;base64,(.+)$/.exec(body.iconBase64)
+    if (!m)
+      throw createError({ statusCode: 400, statusMessage: 'iconBase64 不是合法 data URL' })
+    iconBuf = Buffer.from(m[1], 'base64')
+    if (iconBuf.byteLength === 0)
+      throw createError({ statusCode: 400, statusMessage: 'iconBase64 解析后内容为空' })
+    if (iconBuf.byteLength > 5 * 1024 * 1024)
+      throw createError({ statusCode: 413, statusMessage: '图标超过 5MB 限制' })
+  }
+
   let id: number
   try {
     const result = await db.insert(benefitUsagePlatform).values({
@@ -36,21 +49,15 @@ export default defineHandler(async (event) => {
     throw createError({ statusCode: 500, statusMessage: `创建失败：${e?.message ?? e}` })
   }
 
-  if (body.iconBase64?.trim()) {
-    const m = /^data:[^;]+;base64,(.+)$/.exec(body.iconBase64)
-    if (!m)
-      throw createError({ statusCode: 400, statusMessage: 'iconBase64 不是合法 data URL' })
-    const buf = Buffer.from(m[1], 'base64')
-    if (buf.byteLength > 0 && buf.byteLength <= 5 * 1024 * 1024) {
-      try {
-        const url = await uploadFile(`usage_platform/${id}.png`, buf)
-        await db.update(benefitUsagePlatform)
-          .set({ icon: url })
-          .where(eq(benefitUsagePlatform.id, id))
-      }
-      catch (e: any) {
-        throw createError({ statusCode: 500, statusMessage: `图标上传失败：${e?.message ?? e}` })
-      }
+  if (iconBuf) {
+    try {
+      const url = await uploadFile(`usage_platform/${id}.png`, iconBuf)
+      await db.update(benefitUsagePlatform)
+        .set({ icon: url })
+        .where(eq(benefitUsagePlatform.id, id))
+    }
+    catch (e: any) {
+      throw createError({ statusCode: 500, statusMessage: `图标上传失败：${e?.message ?? e}` })
     }
   }
 
