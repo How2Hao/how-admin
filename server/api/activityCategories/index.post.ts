@@ -65,6 +65,8 @@ export default defineHandler(async (event) => {
     throw createError({ statusCode: 500, statusMessage: `创建失败：${e?.message ?? e}` })
   }
 
+  referenceData.invalidate()
+
   if (iconBuf) {
     try {
       const url = await uploadFile(`activity_category/${id}.png`, iconBuf)
@@ -83,6 +85,5 @@ export default defineHandler(async (event) => {
     .where(eq(activityCategory.id, id))
     .limit(1)
 
-  referenceData.invalidate()
   return row
 })
