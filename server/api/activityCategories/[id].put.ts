@@ -56,6 +56,14 @@ export default defineHandler(async (event) => {
   if (body.parentId != null) {
     if (body.parentId === id)
       throw createError({ statusCode: 400, statusMessage: '父分类不能指向自身' })
+    // Prevent promoting a node with children to a child position (would create depth > 2)
+    const [child] = await db
+      .select({ id: activityCategory.id })
+      .from(activityCategory)
+      .where(eq(activityCategory.parentId, id))
+      .limit(1)
+    if (child)
+      throw createError({ statusCode: 400, statusMessage: '该分类已有子分类，不能设置父分类' })
     const [parent] = await db
       .select({ id: activityCategory.id, parentId: activityCategory.parentId })
       .from(activityCategory)
