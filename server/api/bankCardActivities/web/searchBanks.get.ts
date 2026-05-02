@@ -13,6 +13,7 @@ export default defineHandler((event) => {
     options: referenceData.searchBanks(q, 10).map(match => ({
       label: match.item.name,
       value: match.item.id,
+      icon: match.item.logo,
     })),
   }
 })

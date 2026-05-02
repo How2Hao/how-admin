@@ -5,6 +5,7 @@ import { db } from '../../db'
 export interface BankRef {
   id: number
   name: string
+  logo: string | null
 }
 
 export interface RegionRef {
@@ -86,7 +87,7 @@ class ReferenceDataCache {
 
   async initialize() {
     const [banks, regions, categories, templates, platforms, usagePlatforms, activityCategories, cardOrganizations] = await Promise.all([
-      db.select({ id: bank.id, name: bank.name }).from(bank),
+      db.select({ id: bank.id, name: bank.name, logo: bank.logo }).from(bank),
       db.select({ regionCode: region.regionCode, regionName: region.regionName, level: region.level }).from(region),
       db.select({ id: benefitCategory.id, name: benefitCategory.name, icon: benefitCategory.icon }).from(benefitCategory),
       db.select({ id: bankCardTemplate.id, cardName: bankCardTemplate.cardName }).from(bankCardTemplate),

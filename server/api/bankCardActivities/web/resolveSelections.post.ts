@@ -31,6 +31,7 @@ export default defineHandler(async (event) => {
       ? {
           label: bank.name,
           value: bank.id,
+          icon: bank.logo,
         }
       : null,
     bankCardTemplate: bankCardTemplate
@@ -49,6 +50,7 @@ export default defineHandler(async (event) => {
       ? {
           label: benefitUsagePlatform.name,
           value: benefitUsagePlatform.id,
+          icon: benefitUsagePlatform.icon,
         }
       : null,
     activityCategory: activityCategory

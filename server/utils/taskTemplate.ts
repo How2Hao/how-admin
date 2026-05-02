@@ -116,6 +116,41 @@ export function toTaskTemplateDetail(row: TaskTemplateRow) {
   }
 }
 
+export function toTaskTemplateGroupEntry(row: TaskTemplateRow) {
+  const d = toTaskTemplateDetail(row)
+  return {
+    title: d.title,
+    ruleBrief: d.ruleBrief,
+    ruleDetail: d.ruleDetail,
+    bankId: d.bankId,
+    bankCardOrganization: d.bankCardOrganization,
+    bankCardTemplateId: d.bankCardTemplateId,
+    bankCardType: d.bankCardType,
+    regionCode: d.regionCode,
+    regionMatchStrategy: d.regionMatchStrategy,
+    repeatType: d.repeatType,
+    daysOfWeek: d.daysOfWeek,
+    yearlyMonths: d.yearlyMonths,
+    daysOfMonth: d.daysOfMonth,
+    yearlyDaysOfMonth: d.yearlyDaysOfMonth,
+    frequencyControl: d.frequencyControl,
+    reminderTime: d.reminderTime,
+    startDate: d.startDate,
+    endDate: d.endDate,
+    benefitAmount: d.benefitAmount,
+    benefitDescription: d.benefitDescription,
+    extraConditionsText: d.extraConditionsText,
+    benefitCategoryId: d.benefitCategoryId,
+    benefitPayPlatformId: d.benefitPayPlatformId,
+    benefitUsagePlatformId: d.benefitUsagePlatformId,
+    activityCategoryId: d.activityCategoryId,
+    participationDifficulty: d.participationDifficulty,
+    guideText: d.guideText,
+    minAmount: d.minAmount,
+    minCount: d.minCount,
+  }
+}
+
 export function parseTaskTemplateId(rawId: string | undefined) {
   const id = Number(rawId)
 

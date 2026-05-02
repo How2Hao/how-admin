@@ -73,4 +73,5 @@ export interface BankTaskTierForm {
 export interface SelectOption {
   label: string
   value: string | number
+  icon?: string | null
 }

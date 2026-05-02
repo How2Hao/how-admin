@@ -14,6 +14,7 @@ export default defineHandler((event) => {
       label: match.item.name,
       value: match.item.id,
       code: match.item.code,
+      icon: match.item.icon,
     })),
   }
 })

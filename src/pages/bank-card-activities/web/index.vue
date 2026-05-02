@@ -78,7 +78,7 @@ async function runSearch(handler: (kw: string) => Promise<void>, kw: string, fal
 }
 
 async function handleResolveSelections(parsed: ParseBankCardActivityResponse) {
-  try { await loadResolvedSelections(parsed) }
+  try { await loadResolvedSelections(parsed.templates[0]) }
   catch (e: any) { MessagePlugin.error(e?.message ?? '解析下拉选项失败') }
 }
 

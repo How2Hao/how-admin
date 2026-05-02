@@ -160,7 +160,14 @@ function removeTier(index: number) {
           :options="bankSelectOptions"
           placeholder="搜索银行名称"
           @search="emit('searchBanks', $event)"
-        />
+        >
+          <template #option="{ option }">
+            <div class="flex items-center gap-1.5">
+              <img v-if="option.icon" :src="option.icon" class="w-4 h-4 object-contain rounded-sm flex-shrink-0">
+              <span>{{ option.label }}</span>
+            </div>
+          </template>
+        </t-select>
       </t-form-item>
       <t-form-item label="银行卡组织">
         <t-select v-model="bankCardOrganizationModel" :options="cardOrganizationOptions" />
@@ -270,7 +277,14 @@ function removeTier(index: number) {
         <t-select v-model="benefitCategoryIdModel" clearable :options="benefitCategoryOptions" />
       </t-form-item>
       <t-form-item label="支付平台">
-        <t-select v-model="benefitPayPlatformIdModel" clearable :options="benefitPayPlatformOptions" />
+        <t-select v-model="benefitPayPlatformIdModel" clearable :options="benefitPayPlatformOptions">
+          <template #option="{ option }">
+            <div class="flex items-center gap-1.5">
+              <img v-if="option.icon" :src="option.icon" class="w-4 h-4 object-contain rounded-sm flex-shrink-0">
+              <span>{{ option.label }}</span>
+            </div>
+          </template>
+        </t-select>
       </t-form-item>
     </div>
 
@@ -283,7 +297,14 @@ function removeTier(index: number) {
           :options="benefitUsagePlatformSelectOptions"
           placeholder="搜索优惠使用平台"
           @search="emit('searchBenefitUsagePlatforms', $event)"
-        />
+        >
+          <template #option="{ option }">
+            <div class="flex items-center gap-1.5">
+              <img v-if="option.icon" :src="option.icon" class="w-4 h-4 object-contain rounded-sm flex-shrink-0">
+              <span>{{ option.label }}</span>
+            </div>
+          </template>
+        </t-select>
       </t-form-item>
       <t-form-item label="活动分类">
         <t-select

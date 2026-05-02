@@ -189,7 +189,7 @@ async function handleEdit(row: TaskTemplateListItem) {
   try {
     const detail = await requestJson<TaskTemplateDetailResponse>(`/api/bankCardActivities/taskTemplates/${row.id}`)
     fillForm(detail)
-    await loadResolvedSelections(detail)
+    await loadResolvedSelections(detail.templates[0])
     formVisible.value = true
   }
   catch (error) {
