@@ -10,7 +10,7 @@ interface Row {
   parentId: number | null
   icon: string | null
   sortOrder: number
-  createdAt: number | null
+  createdAt: string | null
 }
 
 const props = defineProps<{
@@ -114,6 +114,7 @@ async function save() {
       await requestJson('/api/activityCategories', { method: 'POST', body })
     }
     MessagePlugin.success('保存成功')
+    emit('update:visible', false)
     emit('saved')
   }
   catch (e: any) {
@@ -139,7 +140,8 @@ function cancel() {
     @confirm="save"
     @close="cancel"
   >
-    <t-form label-width="80px" class="pt-2">
+    <t-loading :loading="saving">
+      <t-form label-width="80px" class="pt-2">
       <t-form-item label="Code">
         <t-input v-model="form.code" placeholder="如 dining" :maxlength="32" />
       </t-form-item>
@@ -149,7 +151,7 @@ function cancel() {
       <t-form-item label="父分类">
         <t-select
           v-model="form.parentId"
-          :options="parentOptions"
+          :options="editingRow ? parentOptions.filter(o => o.value !== editingRow.id) : parentOptions"
           placeholder="留空表示顶级分类"
           clearable
           style="width: 240px"
@@ -176,6 +178,7 @@ function cancel() {
         </div>
         <span class="ml-3 text-xs text-gray-400 self-end">PNG / JPG，≤ 5MB</span>
       </t-form-item>
-    </t-form>
+      </t-form>
+    </t-loading>
   </t-dialog>
 </template>
