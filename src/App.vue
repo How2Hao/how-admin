@@ -48,7 +48,7 @@ const activeMenu = computed(() => route.path)
               <template #icon>
                 <div i-lucide:app-window mr-2 />
               </template>
-              网页管理
+              模板解析
             </t-menu-item>
             <t-menu-item value="/bank-card-activities/edit" to="/bank-card-activities/edit">
               <template #icon>
@@ -68,6 +68,12 @@ const activeMenu = computed(() => route.path)
               <div i-carbon:application mr-3 />
             </template>
             使用平台
+          </t-menu-item>
+          <t-menu-item value="/activity-categories" to="/activity-categories">
+            <template #icon>
+              <div i-carbon:category mr-3 />
+            </template>
+            活动分类
           </t-menu-item>
           <t-submenu value="users">
             <template #icon>
