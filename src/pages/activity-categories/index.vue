@@ -36,7 +36,10 @@ function buildTree(flat: Row[]): Row[] {
     arr.push(r)
     childMap.set(r.parentId!, arr)
   })
-  return parents.map(p => ({ ...p, children: childMap.get(p.id) ?? [] }))
+  return parents.map(p => {
+    const kids = childMap.get(p.id)
+    return kids?.length ? { ...p, children: kids } : p
+  })
 }
 
 const treeData = computed(() => buildTree(list.value))
@@ -83,7 +86,7 @@ function handleSaved() {
 function formatTime(createdAt: number | null) {
   if (!createdAt)
     return '-'
-  return new Date(createdAt).toISOString().slice(0, 16).replace('T', ' ')
+  return new Date(createdAt + 8 * 3600000).toISOString().slice(0, 16).replace('T', ' ')
 }
 
 onMounted(fetchList)

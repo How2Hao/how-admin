@@ -10,7 +10,7 @@ interface Row {
   parentId: number | null
   icon: string | null
   sortOrder: number
-  createdAt: string | null
+  createdAt: number | null
 }
 
 const props = defineProps<{
