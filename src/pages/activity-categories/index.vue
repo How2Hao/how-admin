@@ -101,7 +101,7 @@ onMounted(fetchList)
         </t-button>
       </template>
 
-      <t-table
+      <t-enhanced-table
         row-key="id"
         :data="treeData"
         :columns="columns"
@@ -122,7 +122,7 @@ onMounted(fetchList)
             编辑
           </t-button>
         </template>
-      </t-table>
+      </t-enhanced-table>
     </t-card>
 
     <ActivityCategoryDialog

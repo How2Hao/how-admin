@@ -148,7 +148,7 @@ function cancel() {
       <t-form-item label="名称">
         <t-input v-model="form.name" placeholder="如 餐饮" :maxlength="50" />
       </t-form-item>
-      <t-form-item label="父分类">
+      <t-form-item v-if="!(isEdit && editingRow?.parentId === null)" label="父分类">
         <t-select
           v-model="form.parentId"
           :options="editingRow ? parentOptions.filter(o => o.value !== editingRow.id) : parentOptions"
