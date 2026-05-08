@@ -17,6 +17,7 @@ declare global {
   const controlledComputed: typeof import('@vueuse/core').controlledComputed
   const controlledRef: typeof import('@vueuse/core').controlledRef
   const createApp: typeof import('vue').createApp
+  const createCouponCategory: typeof import('./src/composables/useCouponCategories').createCouponCategory
   const createEmptyBankTaskForm: typeof import('./src/composables/useBankCardActivityForm').createEmptyBankTaskForm
   const createEventHook: typeof import('@vueuse/core').createEventHook
   const createGlobalState: typeof import('@vueuse/core').createGlobalState
@@ -38,6 +39,7 @@ declare global {
   const effectScope: typeof import('vue').effectScope
   const ensureCurrentOption: typeof import('./src/composables/useBankCardActivityForm').ensureCurrentOption
   const extendRef: typeof import('@vueuse/core').extendRef
+  const fetchCouponCategoryTree: typeof import('./src/composables/useCouponCategories').fetchCouponCategoryTree
   const getCurrentInstance: typeof import('vue').getCurrentInstance
   const getCurrentScope: typeof import('vue').getCurrentScope
   const getCurrentWatcher: typeof import('vue').getCurrentWatcher
@@ -121,6 +123,7 @@ declare global {
   const unref: typeof import('vue').unref
   const unrefElement: typeof import('@vueuse/core').unrefElement
   const until: typeof import('@vueuse/core').until
+  const updateCouponCategory: typeof import('./src/composables/useCouponCategories').updateCouponCategory
   const useActiveElement: typeof import('@vueuse/core').useActiveElement
   const useAnimate: typeof import('@vueuse/core').useAnimate
   const useApiFetch: typeof import('./src/composables/useApiFetch').useApiFetch
@@ -316,11 +319,17 @@ declare global {
   export type { Component, Slot, Slots, ComponentPublicInstance, ComputedRef, DirectiveBinding, ExtractDefaultPropTypes, ExtractPropTypes, ExtractPublicPropTypes, InjectionKey, PropType, Ref, ShallowRef, MaybeRef, MaybeRefOrGetter, VNode, WritableComputedRef } from 'vue'
   import('vue')
   // @ts-ignore
-  export type { BankTaskLikeData } from './src/composables/useBankCardActivityForm'
+  export type { BankTaskLikeTier, BankTaskLikeTemplate, BankTaskLikeData } from './src/composables/useBankCardActivityForm'
   import('./src/composables/useBankCardActivityForm')
   // @ts-ignore
-  export type { ParseBankCardActivityResponse, ReferenceOptionsResponse, SearchBanksResponse, SearchBankCardTemplatesResponse, SearchRegionsResponse, SearchBenefitUsagePlatformsResponse, SearchActivityCategoriesResponse, ResolveSelectionsResponse, CreateBankCardActivityResponse, TaskTemplateListResponse, TaskTemplateDetailResponse, CreateTaskTemplateResponse, UpdateTaskTemplateResponse, BankTaskPayload, TaskTemplateListItem, BankTaskFormData, SelectOption } from './src/types/bankCardActivities'
+  export type { CouponCategoryUpdatePayload, CouponCategoryCreatePayload } from './src/composables/useCouponCategories'
+  import('./src/composables/useCouponCategories')
+  // @ts-ignore
+  export type { ParseBankCardActivityResponse, ReferenceOptionsResponse, SearchBanksResponse, SearchBankCardTemplatesResponse, SearchRegionsResponse, SearchBenefitUsagePlatformsResponse, SearchActivityCategoriesResponse, ResolveSelectionsResponse, CreateBankCardActivityResponse, TaskTemplateListResponse, TaskTemplateDetailResponse, CreateTaskTemplateResponse, UpdateTaskTemplateResponse, BankTaskPayload, TaskTemplateListItem, BankTaskFormData, BankTaskLinkedCouponForm, BankTaskTierForm, SelectOption } from './src/types/bankCardActivities'
   import('./src/types/bankCardActivities')
+  // @ts-ignore
+  export type { CouponCategoryDto, CouponCategoryTreeNode } from './src/types/couponCategory'
+  import('./src/types/couponCategory')
   // @ts-ignore
   export type { IsLoggedInApiResponse, AccountApiResponse } from './src/types/officialAccounts'
   import('./src/types/officialAccounts')
@@ -342,6 +351,7 @@ declare module 'vue' {
     readonly controlledComputed: UnwrapRef<typeof import('@vueuse/core')['controlledComputed']>
     readonly controlledRef: UnwrapRef<typeof import('@vueuse/core')['controlledRef']>
     readonly createApp: UnwrapRef<typeof import('vue')['createApp']>
+    readonly createCouponCategory: UnwrapRef<typeof import('./src/composables/useCouponCategories')['createCouponCategory']>
     readonly createEmptyBankTaskForm: UnwrapRef<typeof import('./src/composables/useBankCardActivityForm')['createEmptyBankTaskForm']>
     readonly createEventHook: UnwrapRef<typeof import('@vueuse/core')['createEventHook']>
     readonly createGlobalState: UnwrapRef<typeof import('@vueuse/core')['createGlobalState']>
@@ -362,6 +372,7 @@ declare module 'vue' {
     readonly effectScope: UnwrapRef<typeof import('vue')['effectScope']>
     readonly ensureCurrentOption: UnwrapRef<typeof import('./src/composables/useBankCardActivityForm')['ensureCurrentOption']>
     readonly extendRef: UnwrapRef<typeof import('@vueuse/core')['extendRef']>
+    readonly fetchCouponCategoryTree: UnwrapRef<typeof import('./src/composables/useCouponCategories')['fetchCouponCategoryTree']>
     readonly getCurrentInstance: UnwrapRef<typeof import('vue')['getCurrentInstance']>
     readonly getCurrentScope: UnwrapRef<typeof import('vue')['getCurrentScope']>
     readonly getCurrentWatcher: UnwrapRef<typeof import('vue')['getCurrentWatcher']>
@@ -444,6 +455,7 @@ declare module 'vue' {
     readonly unref: UnwrapRef<typeof import('vue')['unref']>
     readonly unrefElement: UnwrapRef<typeof import('@vueuse/core')['unrefElement']>
     readonly until: UnwrapRef<typeof import('@vueuse/core')['until']>
+    readonly updateCouponCategory: UnwrapRef<typeof import('./src/composables/useCouponCategories')['updateCouponCategory']>
     readonly useActiveElement: UnwrapRef<typeof import('@vueuse/core')['useActiveElement']>
     readonly useAnimate: UnwrapRef<typeof import('@vueuse/core')['useAnimate']>
     readonly useArrayDifference: UnwrapRef<typeof import('@vueuse/core')['useArrayDifference']>

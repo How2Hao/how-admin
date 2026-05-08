@@ -85,6 +85,24 @@ class ReferenceDataCache {
     await this._initPromise
   }
 
+  invalidate() {
+    this._banks = null
+    this._regions = null
+    this._benefitCategories = null
+    this._bankCardTemplates = null
+    this._benefitPlatforms = null
+    this._benefitUsagePlatforms = null
+    this._activityCategories = null
+    this._cardOrganizations = null
+    this._bankFuse = null
+    this._regionFuse = null
+    this._templateFuse = null
+    this._platformFuse = null
+    this._usagePlatformFuse = null
+    this._activityCategoryFuse = null
+    this._initPromise = null
+  }
+
   async initialize() {
     const [banks, regions, categories, templates, platforms, usagePlatforms, activityCategories, cardOrganizations] = await Promise.all([
       db.select({ id: bank.id, name: bank.name, logo: bank.logo }).from(bank),

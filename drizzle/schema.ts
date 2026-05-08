@@ -98,6 +98,28 @@ export const accUsers = mysqlTable('acc_users', {
   unique('uniq_acc_user_owner_username').on(table.userId, table.username),
 ])
 
+/**
+ * 卡券分类树（自指；parent_id=0 = 一级分类，parent_id>0 = 二级品牌）。
+ * 数据来源：scripts/sync_coupon_categories_from_quanma.ts 从 quanma51.com 抓取入库。
+ */
+export const couponCategory = mysqlTable('coupon_category', {
+  id: int().autoincrement().notNull(),
+  source: varchar({ length: 32 }).default('quanma51').notNull(),
+  parentId: int('parent_id').default(0).notNull(),
+  name: varchar({ length: 64 }).notNull(),
+  sortOrder: int('sort_order').default(0).notNull(),
+  logoUrl: varchar('logo_url', { length: 500 }),
+  logoOriginUrl: varchar('logo_origin_url', { length: 500 }),
+  skuQueryName: varchar('sku_query_name', { length: 64 }),
+  isVisible: tinyint('is_visible').default(1).notNull(),
+  createdAt: bigint('created_at', { mode: 'number' }).notNull(),
+  updatedAt: datetime('updated_at', { mode: 'string' }).default(sql`(CURRENT_TIMESTAMP)`).notNull(),
+}, table => [
+  index('idx_coupon_category_parent_visible').on(table.parentId, table.isVisible),
+  primaryKey({ columns: [table.id], name: 'coupon_category_id' }),
+  unique('uniq_coupon_category').on(table.source, table.parentId, table.name),
+])
+
 export const activityCategory = mysqlTable('activity_category', {
   id: int().autoincrement().notNull(),
   code: varchar({ length: 32 }).notNull(),
@@ -125,6 +147,7 @@ export const bank = mysqlTable('bank', {
   creditCardCount: int('credit_card_count'),
   source: varchar({ length: 255 }),
   isUnifiedBill: tinyint('is_unified_bill').default(0).notNull(),
+  isVisible: tinyint('is_visible').default(1).notNull(),
 }, table => [
   primaryKey({ columns: [table.id], name: 'bank_id' }),
 ])
@@ -385,8 +408,6 @@ export const taskTemplate = mysqlTable('task_template', {
   isCompleted: tinyint('is_completed').default(0).notNull(),
   status: mysqlEnum(['PENDING', 'EXPIRED', 'COMPLETED']).default('PENDING').notNull(),
   benefitCategoryId: int('benefit_category_id'),
-  benefitAmount: decimal('benefit_amount', { precision: 10, scale: 2 }),
-  benefitDescription: varchar('benefit_description', { length: 500 }),
   benefitPayPlatformId: int('benefit_pay_platform_id'),
   benefitUsagePlatformId: int('benefit_usage_platform_id'),
   activityCategoryId: int('activity_category_id'),
@@ -397,21 +418,38 @@ export const taskTemplate = mysqlTable('task_template', {
   participationDifficulty: varchar('participation_difficulty', { length: 16 }),
   extraConditionsText: text('extra_conditions_text'),
   guideText: text('guide_text'),
-  rootTemplateId: int('root_template_id'),
-  tierExclusive: tinyint('tier_exclusive'),
-  minAmount: decimal('min_amount', { precision: 10, scale: 2 }),
-  minCount: int('min_count'),
-  // @deprecated 第一轮字段，新代码不读不写
-  requiresQualify: tinyint('requires_qualify').default(0).notNull(),
-  qualifyCycle: mysqlEnum('qualify_cycle', ['SAME_MONTH', 'PREV_MONTH']),
-  tierMode: mysqlEnum('tier_mode', ['NONE', 'INDEPENDENT', 'EXCLUSIVE']).default('NONE').notNull(),
-  tiers: json('tiers').$type<{ minAmount: number | null; minCount: number | null; benefitAmount: number; benefitDescription: string }[]>(),
-  qualifyDeadline: bigint('qualify_deadline', { mode: 'number' }),
+  /** 档位信息数组（主存储），至少 1 个元素。tiers.length > 1 = 同一行内"互斥取一" */
+  tiers: json('tiers').$type<{
+    minAmount: number | null
+    benefitAmountFixed: number | null
+    benefitAmountMin: number | null
+    benefitAmountMax: number | null
+    benefitDescription: string | null
+    quotaPerCycleText: string | null
+    quotaTotalText: string | null
+  }[]>().notNull(),
+  /** UI 聚合分组 ID（无业务语义；同 groupId 的行渲染为同一聚合卡片） */
+  groupId: int('group_id'),
+  /**
+   * 电子卡券 / 会员充值类活动关联的卡券明细（仅 benefitCategoryId in (1, 2) 时填值）。
+   * 同 couponId 的不同 SKU 用数组里多行表示（爱奇艺月卡 + 爱奇艺季卡）。
+   */
+  linkedCoupons: json('linked_coupons').$type<{
+    couponId: number
+    purchasePrice: number | null
+    sku: string | null
+    actualValue: number | null
+  }[]>(),
+  // 创建/维护该模板的管理员 id（指向 admin_user.id）。现有数据回填为 1。
+  // 默认值 1 是兜底（新代码会显式从当前登录 admin 写入），保留以防 INSERT 时漏带导致 NOT NULL 报错。
+  adminUserId: int('admin_user_id').default(1).notNull(),
+  isVisible: tinyint('is_visible').default(0).notNull(),
   createdAt: bigint('created_at', { mode: 'number' }).notNull(),
   updatedAt: datetime('updated_at', { mode: 'string' }).default(sql`(CURRENT_TIMESTAMP)`).notNull(),
 }, table => [
   index('idx_activity_category').on(table.activityCategoryId),
-  index('idx_template_root').on(table.rootTemplateId),
+  index('idx_template_group').on(table.groupId),
+  index('idx_task_template_admin_user').on(table.adminUserId),
   primaryKey({ columns: [table.id], name: 'task_template_id' }),
 ])
 
@@ -500,4 +538,41 @@ export const userFeedback = mysqlTable('user_feedback', {
   index('idx_user_feedback_userId').on(table.userId),
   index('idx_user_feedback_user_created').on(table.userId, table.createdAt),
   primaryKey({ columns: [table.id], name: 'user_feedback_id' }),
+])
+
+// ── 后台管理员账号体系 ──────────────────────────────────────────────────
+// 与 ha 端 users 表完全解耦：admin 用 username + 密码登录；ha 端走手机号 + SMS。
+// role 字段为权限扩展预留：现阶段两个值 SUPER_ADMIN / ADMIN，后续要做 RBAC 不需要改 schema。
+export const adminUser = mysqlTable('admin_user', {
+  id: int().autoincrement().notNull(),
+  username: varchar({ length: 64 }).notNull(),
+  passwordHash: varchar('password_hash', { length: 255 }).notNull(),
+  displayName: varchar('display_name', { length: 100 }),
+  // 头像 URL（OSS 完整地址或外链）；与 users.avatar 字段语义一致
+  avatar: varchar({ length: 500 }),
+  role: varchar({ length: 32 }).default('ADMIN').notNull(),
+  status: varchar({ length: 16 }).default('ACTIVE').notNull(),
+  lastLoginAt: bigint('last_login_at', { mode: 'number' }),
+  createdAt: bigint('created_at', { mode: 'number' }).notNull(),
+  updatedAt: bigint('updated_at', { mode: 'number' }).notNull(),
+}, table => [
+  primaryKey({ columns: [table.id], name: 'admin_user_id' }),
+  unique('admin_user_username').on(table.username),
+])
+
+// 会话用 random token + httpOnly cookie；revokedAt 支持服务端主动登出
+export const adminSession = mysqlTable('admin_session', {
+  id: int().autoincrement().notNull(),
+  adminUserId: int('admin_user_id').notNull(),
+  token: char({ length: 64 }).notNull(),
+  expiresAt: bigint('expires_at', { mode: 'number' }).notNull(),
+  revokedAt: bigint('revoked_at', { mode: 'number' }),
+  ip: varchar({ length: 64 }),
+  userAgent: varchar('user_agent', { length: 500 }),
+  lastUsedAt: bigint('last_used_at', { mode: 'number' }),
+  createdAt: bigint('created_at', { mode: 'number' }).notNull(),
+}, table => [
+  primaryKey({ columns: [table.id], name: 'admin_session_id' }),
+  unique('admin_session_token').on(table.token),
+  index('idx_admin_session_admin_user').on(table.adminUserId),
 ])

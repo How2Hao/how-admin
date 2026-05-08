@@ -4,6 +4,7 @@ import { defineHandler } from 'nitro'
 import { referenceData } from '~~/agent/utils/referenceData'
 import { db } from '~~/db'
 import { getBankTaskCreateSchema } from '~~/utils/bankCardActivityForm'
+import { buildRuleSourceJson, commitTemplateImages } from '~~/utils/ruleSourceImages'
 import { parseTaskTemplateId, toTemplateMutation } from '~~/utils/taskTemplate'
 import { taskTemplate } from '../../../../drizzle/schema'
 
@@ -21,7 +22,7 @@ export default defineHandler(async (event) => {
     })
   }
 
-  const [existing] = await db.select({ id: taskTemplate.id, rootTemplateId: taskTemplate.rootTemplateId })
+  const [existing] = await db.select({ id: taskTemplate.id })
     .from(taskTemplate).where(eq(taskTemplate.id, id)).limit(1)
 
   if (!existing) {
@@ -31,28 +32,28 @@ export default defineHandler(async (event) => {
     })
   }
 
-  // 编辑当前档：用 templates[0] 作为本档新内容，不动 root_template_id；
-  // tier_exclusive 同步更新到同组所有档（按当前 PUT 提交的值）。
-  const { templates, tierExclusive } = parsed.data
-  const effectiveTierExclusive = templates.length > 1 || (existing.rootTemplateId && existing.rootTemplateId !== id)
-    ? tierExclusive
-    : null
+  const tpl = parsed.data
 
   await db.update(taskTemplate).set({
-    ...toTemplateMutation(templates[0], effectiveTierExclusive),
+    ...toTemplateMutation(tpl),
     updatedAt: sql`CURRENT_TIMESTAMP`,
   }).where(eq(taskTemplate.id, id))
 
-  // 主档变更 tier_exclusive 时同步给同组其他档
-  const rootId = existing.rootTemplateId ?? id
-  if (rootId === id && effectiveTierExclusive !== null) {
-    await db.update(taskTemplate)
-      .set({ tierExclusive: effectiveTierExclusive ? 1 : 0 })
-      .where(eq(taskTemplate.rootTemplateId, rootId))
+  // 编辑路径同样支持新增/删除原图：keptUrls + base64s 合并写到本行 rule_source
+  try {
+    const keptUrls = tpl.ruleSourceImageUrls ?? []
+    const newBase64s = tpl.ruleSourceImageBase64s ?? []
+    const finalUrls = await commitTemplateImages(id, keptUrls, newBase64s)
+    const ruleSource = buildRuleSourceJson(tpl.ruleSourceLinkUrl ?? null, finalUrls)
+    await db.update(taskTemplate).set({ ruleSource }).where(eq(taskTemplate.id, id))
+  }
+  catch (e: any) {
+    console.warn(`[taskTemplates PUT] rule_source commit failed for id=${id}:`, e?.message ?? e)
   }
 
   return {
     id,
-    title: templates[0].title,
+    title: tpl.title,
+    groupId: tpl.groupId ?? null,
   }
 })

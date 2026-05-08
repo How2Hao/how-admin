@@ -45,8 +45,7 @@ function buildTree(flat: Row[]): Row[] {
 const treeData = computed(() => buildTree(list.value))
 
 const columns = [
-  { colKey: 'icon', title: '图标', width: 72 },
-  { colKey: 'name', title: '名称', minWidth: 140 },
+  { colKey: 'name', title: '名称', minWidth: 180 },
   { colKey: 'code', title: 'Code', width: 160 },
   { colKey: 'sortOrder', title: '排序', width: 80 },
   { colKey: 'createdAt', title: '创建时间', width: 160 },
@@ -110,9 +109,12 @@ onMounted(fetchList)
         stripe
         bordered
       >
-        <template #icon="{ row }">
-          <img v-if="row.icon" :src="row.icon" class="w-8 h-8 object-contain rounded">
-          <span v-else class="text-gray-400">-</span>
+        <template #name="{ row }">
+          <div class="flex items-center gap-2">
+            <img v-if="row.icon" :src="row.icon" class="w-6 h-6 object-contain rounded flex-shrink-0">
+            <div v-else class="w-6 h-6 flex-shrink-0" />
+            <span>{{ row.name }}</span>
+          </div>
         </template>
         <template #createdAt="{ row }">
           {{ formatTime(row.createdAt) }}

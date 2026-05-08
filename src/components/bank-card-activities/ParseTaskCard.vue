@@ -49,9 +49,11 @@ const inputType = ref<InputType>('url')
 const url = ref('')
 const text = ref('')
 
-interface UploadedImage { url: string, thumbBase64: string }
+// 不再预上传 OSS：用户粘贴/选图后只暂存 base64 data URL；
+// 解析时直接传 base64 给 server（server 内部转临时 OSS URL 给 OCR 用）；
+// 创建模板成功后才把这些 base64 真实上传到规范路径 task_template/{id}/{idx}.png
+interface UploadedImage { base64: string }
 const images = ref<UploadedImage[]>([])
-const uploading = ref(false)
 const fileInput = ref<HTMLInputElement | null>(null)
 
 const previewedUrl = ref('')
@@ -97,27 +99,19 @@ async function fileToDataUrl(file: File): Promise<string> {
   })
 }
 
-async function uploadOne(dataUrl: string) {
-  const res = await requestJson<{ url: string }>('/api/bankCardActivities/web/uploadParseImage', {
-    method: 'POST',
-    body: { base64: dataUrl },
-  })
-  images.value.push({ url: res.url, thumbBase64: dataUrl })
-}
-
 async function handleFiles(files: FileList | File[] | null) {
   if (!files) return
   const arr = Array.from(files).filter(f => f.type.startsWith('image/'))
   if (arr.length === 0) return
-  uploading.value = true
-  try {
-    for (const f of arr) {
+  for (const f of arr) {
+    try {
       const dataUrl = await fileToDataUrl(f)
-      try { await uploadOne(dataUrl) }
-      catch (e: any) { MessagePlugin.error(`上传失败：${e?.message ?? e}`) }
+      images.value.push({ base64: dataUrl })
+    }
+    catch (e: any) {
+      MessagePlugin.error(`图片读取失败：${e?.message ?? e}`)
     }
   }
-  finally { uploading.value = false }
 }
 
 function handlePaste(e: ClipboardEvent) {
@@ -162,16 +156,18 @@ async function handleParse() {
   else
     previewedUrl.value = ''
   try {
-    const body: { url?: string, imageUrls?: string[], text?: string } = { text: text.value.trim() }
+    const body: { url?: string, imageBase64s?: string[], text?: string } = { text: text.value.trim() }
     if (inputType.value === 'url')
       body.url = url.value.trim()
     else
-      body.imageUrls = images.value.map(i => i.url)
+      body.imageBase64s = images.value.map(i => i.base64)
     const parsed = await requestJson<ParseBankCardActivityResponse>('/api/bankCardActivities/web/parse', {
       method: 'POST',
       body,
     })
     fillForm(parsed)
+    // 把已选 base64 注入表单（保存时一并提交）
+    form.ruleSourceImageBase64s = images.value.map(i => i.base64)
     emit('resolveSelections', parsed)
     status.value = 'parsed'
   }
@@ -261,7 +257,7 @@ async function handleSave() {
         <template v-else>
           <div
             class="flex-1 min-h-0 border-2 border-dashed rounded p-2 cursor-pointer hover:bg-white transition-colors overflow-y-auto"
-            :class="(inputsLocked || uploading) ? 'pointer-events-none opacity-60' : ''"
+            :class="inputsLocked ? 'pointer-events-none opacity-60' : ''"
             tabindex="0"
             @click="triggerPick"
             @paste="handlePaste"
@@ -280,8 +276,8 @@ async function handleSave() {
               点击 / 粘贴 / 拖入图片
             </div>
             <div v-else class="flex flex-wrap gap-2">
-              <div v-for="(img, idx) in images" :key="img.url" class="relative">
-                <img :src="img.thumbBase64" class="h-14 w-14 object-cover rounded border" >
+              <div v-for="(img, idx) in images" :key="idx" class="relative">
+                <img :src="img.base64" class="h-14 w-14 object-cover rounded border" >
                 <button
                   type="button"
                   class="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[10px] leading-none hover:bg-red-600"
@@ -289,7 +285,6 @@ async function handleSave() {
                 >×</button>
               </div>
             </div>
-            <div v-if="uploading" class="mt-2 text-xs text-gray-500 text-center">上传中…</div>
           </div>
         </template>
 
@@ -305,7 +300,7 @@ async function handleSave() {
           size="small"
           block
           :loading="status === 'parsing'"
-          :disabled="!hasInput || inputsLocked || uploading"
+          :disabled="!hasInput || inputsLocked"
           @click="handleParse"
         >
           {{ status === 'parsed' || status === 'saved' ? '重新解析' : '解析' }}

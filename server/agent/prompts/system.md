@@ -55,26 +55,35 @@
 - 无法明确判断的平台、分类、参与难度等字段都可以填 `null`。
 - 任何字段都不要用虚构信息补齐。
 - **`startDate` / `endDate` 缺失时不能填 null**，必须按下方"时间上下文"中给出的默认值填写：开始时间默认今天 00:00:00，结束时间默认本月最后一天 23:59:59。
+- **名额信息**填到每个 tier 的 `quotaPerCycleText` / `quotaTotalText` 字段，**不要再塞进 `extraConditionsText`**。频控（"每日 1 次"）属于 `frequencyControl`，不要混入名额。
 
-## 7. 分档输出
+## 7. 分档输出（核心）
 
-输出根字段是 `{ templates: [...], tierExclusive }`：
+输出根字段是 `{ templates: [...], tierExclusive }`，每条 template 内嵌 `tiers: [...]` 数组。**结构 + tierExclusive 标识必须保持一致**：
 
-- **单档活动**（只有一个门槛 / 一种优惠）→ `templates` 数组只填 1 条；`tierExclusive=null`
-- **多档活动**（同一活动有多个门槛 / 多档优惠）→ `templates` 按门槛由低到高列出每档，每档独立填 `minAmount / minCount / benefitAmount / benefitDescription`；公共字段（`title / bankId / repeatType / reminderTime` 等）每条都填一致值
-- **`tierExclusive`**：
-  - 单档（`templates.length === 1`）→ `null`
-  - 多档"分别享受 / 独立计算 / 可叠加 / 各档独立" → `false`
-  - 多档"二选一 / 取最高一档 / 享受其中一项 / 最多享一档" → `true`
-- **每档的 `minAmount / minCount`**：
-  - "满 X 元减 Y" 这种金额门槛填 `minAmount=X`，`minCount=null`
-  - "X 笔减 Y" 这种笔数门槛填 `minCount=X`，`minAmount=null`
-  - "满 X 元且 N 笔" 两者都填
-  - 单档无门槛活动（如"立享 8 折"）两者都填 `null`
-- **每档的 `benefitAmount`**：本档具体优惠金额，例如"满 200 减 20"填 `20`
-- **每档的 `benefitDescription`**：本档一句话中文描述，例如"满 200 减 20" / "5 笔减 30"
+- **单档活动**（一个门槛 / 一种优惠）→ 1 条 template，`tiers` 长度为 1，`tierExclusive=null`
+- **多档互斥**（同一活动多档，规则上"二选一 / 取最高 / 享受其中一项 / 最多享一档"）→ 1 条 template，`tiers` 按 `minAmount` 由低到高列出每档，`tierExclusive=true`
+- **多档非互斥**（不同档位可叠加 / 独立计算 / 分别享受 / 各档独立）→ 输出多条 template，**每条 template 的 tiers 长度为 1**，所有 templates 的共享字段（title/bankId/regionCode/repeatType/...）保持一致，`tierExclusive=false`；运营后续会自动分配同一 groupId 让前端聚合卡片，你不要输出 groupId
+
+### 7.1 tier 字段填写规则
+
+- **`minAmount`**：达标金额门槛。"满 X 减 Y" 填 X；无门槛活动（如"立享 8 折"）填 `null`
+- **优惠金额三选一组**（任一档位填且仅填其一组）：
+  - 固定金额："立减 50 元" → `benefitAmountFixed=50`，Min/Max 都填 `null`
+  - 区间金额："随机立减 5-50 元" → `benefitAmountMin=5`，`benefitAmountMax=50`，Fixed 填 `null`
+  - 不能同时填 Fixed 和 Min/Max
+- **`benefitDescription`**：本档一句话中文描述，例如"满 200 减 20" / "5 笔减 30" / "随机立减 5-50 元"
+- **`quotaPerCycleText`**：每日/每周名额文案。"每日前 100 名" → 填 `"每日 100 名"`；"每周限 500 个名额" → 填 `"每周 500 名"`；没有则 `null`
+- **`quotaTotalText`**：总名额文案。"总共前 1000 名" / "限量 500 份" / "先到先得" → 按原文表述填；没有则 `null`
+
+### 7.2 互斥 vs 非互斥的判断要点
+
+- 看文章原文里的关键词："二选一" / "取最高一档" / "享受其中一项" / "最多享一档" / "活动期限享 X 次" → **互斥** (`tierExclusive=true`)
+- 关键词："分别享受" / "独立计算" / "可叠加" / "各档独立" / "每档限 X 次" / 描述明显是多个不冲突的优惠玩法 → **非互斥** (`tierExclusive=false`)
+- 若文章对档位关系没明说，优先按 **互斥** 输出（保守选择，运营之后可以改）
+- 单档活动一律 `tierExclusive=null`
 
 ## 8. 输出约束
 
-- 只返回 1 个结构化对象（`{ templates, tierExclusive }`）。
+- 只返回 1 个结构化对象（`{ templates: [...], tierExclusive }`）。
 - 最终结构由 `responseFormat` 接管；你只需根据字段含义提供准确值。

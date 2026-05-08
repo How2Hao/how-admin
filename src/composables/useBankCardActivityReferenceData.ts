@@ -1,5 +1,4 @@
 import type {
-  BankTaskPayload,
   ReferenceOptionsResponse,
   ResolveSelectionsResponse,
   SearchActivityCategoriesResponse,
@@ -58,7 +57,13 @@ export function useBankCardActivityReferenceData() {
     activityCategoryOptions.value = await fetchSearchOptions<SearchActivityCategoriesResponse>(`/api/bankCardActivities/web/searchActivityCategories?q=${encodeURIComponent(keyword)}`)
   }
 
-  async function loadResolvedSelections(payload: Pick<BankTaskPayload, 'bankId' | 'bankCardTemplateId' | 'regionCode' | 'benefitUsagePlatformId' | 'activityCategoryId'>) {
+  async function loadResolvedSelections(payload: {
+    bankId: number | null
+    bankCardTemplateId: number | null
+    regionCode?: string
+    benefitUsagePlatformId: number | null
+    activityCategoryId: number | null
+  }) {
     const resolved = await requestJson<ResolveSelectionsResponse>('/api/bankCardActivities/web/resolveSelections', {
       method: 'POST',
       body: {

@@ -1,10 +1,25 @@
 <script setup lang="ts">
+import { useRouter } from 'vue-router'
+import { useAdminUser } from './stores/adminUser'
+
 const route = useRoute()
+const router = useRouter()
 const activeMenu = computed(() => route.path)
+
+const { adminUser, logout: doLogout } = useAdminUser()
+
+// 登录页不渲染主框架（侧边栏 + 顶栏），由 login.vue 自己控制全屏布局
+const isLoginPage = computed(() => route.path === '/login')
+
+async function handleLogout() {
+  await doLogout()
+  router.replace('/login')
+}
 </script>
 
 <template>
-  <t-layout h-full class="app-shell">
+  <RouterView v-if="isLoginPage" />
+  <t-layout v-else h-full class="app-shell">
     <t-header>
       <t-head-menu value="item1" height="120px">
         <template #logo>
@@ -12,12 +27,30 @@ const activeMenu = computed(() => route.path)
             How2Hao Admin
           </div>
         </template>
-        <!-- <t-menu-item value="item1">
-          已选内容
-        </t-menu-item> -->
         <template #operations>
-          <div class="t-menu__operations-icon" @click="toggleDark()">
-            <div i-carbon-sun dark:i-carbon-moon />
+          <div class="header-ops">
+            <div v-if="adminUser" class="header-user" :title="`role: ${adminUser.role}`">
+              <img
+                v-if="adminUser.avatar"
+                :src="adminUser.avatar"
+                class="header-user-avatar"
+                :alt="adminUser.displayName || adminUser.username"
+              >
+              <div v-else class="header-user-avatar header-user-avatar--fallback">
+                {{ (adminUser.displayName || adminUser.username).slice(0, 1).toUpperCase() }}
+              </div>
+              <span class="header-user-name">{{ adminUser.displayName || adminUser.username }}</span>
+              <span class="header-user-role">{{ adminUser.role }}</span>
+              <t-button size="small" variant="text" theme="default" @click="handleLogout">
+                <template #icon>
+                  <div i-carbon:logout />
+                </template>
+                登出
+              </t-button>
+            </div>
+            <div class="t-menu__operations-icon" @click="toggleDark()">
+              <div i-carbon-sun dark:i-carbon-moon />
+            </div>
           </div>
         </template>
       </t-head-menu>
@@ -69,11 +102,29 @@ const activeMenu = computed(() => route.path)
             </template>
             使用平台
           </t-menu-item>
+          <t-menu-item value="/benefit-pay-platforms" to="/benefit-pay-platforms">
+            <template #icon>
+              <div i-carbon:wallet mr-3 />
+            </template>
+            支付平台
+          </t-menu-item>
+          <t-menu-item value="/banks" to="/banks">
+            <template #icon>
+              <div i-carbon:bank mr-3 />
+            </template>
+            银行管理
+          </t-menu-item>
           <t-menu-item value="/activity-categories" to="/activity-categories">
             <template #icon>
               <div i-carbon:category mr-3 />
             </template>
             活动分类
+          </t-menu-item>
+          <t-menu-item value="/coupon-categories" to="/coupon-categories">
+            <template #icon>
+              <div i-carbon:ticket mr-3 />
+            </template>
+            卡券管理
           </t-menu-item>
           <t-submenu value="users">
             <template #icon>
@@ -116,5 +167,49 @@ const activeMenu = computed(() => route.path)
 .app-content {
   box-sizing: border-box;
   max-width: 100%;
+}
+
+/* Header 右侧操作区 */
+.header-ops {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.header-user {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border: 1px solid var(--component-border, #e5edf5);
+  border-radius: 999px;
+  font-size: 13px;
+  color: #475569;
+}
+.header-user-avatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: rgba(148, 163, 184, 0.18);
+}
+.header-user-avatar--fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: #475569;
+}
+.header-user-name {
+  font-weight: 600;
+  color: #0f172a;
+}
+.header-user-role {
+  font-size: 11px;
+  color: #94a3b8;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(148, 163, 184, 0.12);
 }
 </style>

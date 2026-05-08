@@ -1,13 +1,26 @@
 import type { taskTemplate } from '../../drizzle/schema'
-import type { BankTaskCreateInput, BankTemplateInput } from './bankCardActivityForm'
+import type { BankTemplateInput } from './bankCardActivityForm'
 import { createError } from 'h3'
 import { serializeNumberArray, toTimestamp } from './bankCardActivityForm'
 
 type TaskTemplateRow = typeof taskTemplate.$inferSelect
 
-function parseSerializedNumberArray(value: string | null) {
+export function parseSerializedNumberArray(value: string | null) {
   if (!value) {
     return null
+  }
+
+  // 兼容两种历史格式：JSON "[1,3,5]"（新格式）+ 逗号分隔 "1,3,5"（旧格式，DB migration 后会消失）
+  try {
+    const parsed = JSON.parse(value)
+    if (Array.isArray(parsed)) {
+      return parsed
+        .map((item: any) => Number(item))
+        .filter((n: number) => !Number.isNaN(n))
+    }
+  }
+  catch {
+    // 非合法 JSON → 走逗号 split fallback
   }
 
   return value
@@ -38,13 +51,25 @@ export function formatTimestamp(value: number | null) {
   ].join(':')}`
 }
 
-/** 单档原子的 insert payload。tierExclusive / rootTemplateId 由调用方在 batch 写入时设置。 */
-export function toTemplateMutation(tpl: BankTemplateInput, tierExclusive: boolean | null) {
-  return {
+/**
+ * 单 task_template 行的 insert/update payload。
+ * @param adminUserId
+ *   - 创建路径传入 → 写入实际创建者
+ *   - 编辑路径不传（undefined） → 不覆盖原 admin_user_id
+ * @param overrides
+ *   - 非互斥多档 fan-out 时，每行写自己的子集 tiers / groupId
+ */
+export function toTemplateMutation(
+  tpl: BankTemplateInput,
+  adminUserId?: number,
+  overrides?: { tiers?: BankTemplateInput['tiers']; groupId?: number | null },
+) {
+  const base = {
     title: tpl.title,
     ruleBrief: tpl.ruleBrief,
     ruleDetail: tpl.ruleDetail,
-    ruleSource: null,
+    // rule_source 不在 toTemplateMutation 写入；统一交给 commitTemplateRuleSource()
+    // 处理（在拿到 id 之后才能写图片路径，所以分两步）
     date: null,
     bankId: tpl.bankId,
     bankCardOrganization: String(tpl.bankCardOrganization),
@@ -63,21 +88,21 @@ export function toTemplateMutation(tpl: BankTemplateInput, tierExclusive: boolea
     yearlyDaysOfMonth: serializeNumberArray(tpl.yearlyDaysOfMonth),
     frequencyControl: tpl.frequencyControl,
     benefitCategoryId: tpl.benefitCategoryId,
-    benefitAmount: tpl.benefitAmount.toString(),
-    benefitDescription: tpl.benefitDescription,
     benefitPayPlatformId: tpl.benefitPayPlatformId,
     benefitUsagePlatformId: tpl.benefitUsagePlatformId,
     activityCategoryId: tpl.activityCategoryId,
     participationDifficulty: tpl.participationDifficulty,
     extraConditionsText: tpl.extraConditionsText,
     guideText: tpl.guideText,
-    minAmount: tpl.minAmount === null ? null : tpl.minAmount.toString(),
-    minCount: tpl.minCount,
-    tierExclusive: tierExclusive === null ? null : (tierExclusive ? 1 : 0),
+    tiers: overrides?.tiers ?? tpl.tiers,
+    groupId: overrides?.groupId !== undefined ? overrides.groupId : ((tpl as { groupId?: number | null }).groupId ?? null),
+    linkedCoupons: tpl.linkedCoupons ?? null,
   }
+  return adminUserId != null ? { ...base, adminUserId } : base
 }
 
 export function toTaskTemplateDetail(row: TaskTemplateRow) {
+  const tiers = Array.isArray(row.tiers) ? row.tiers : []
   return {
     id: row.id,
     title: row.title,
@@ -95,59 +120,45 @@ export function toTaskTemplateDetail(row: TaskTemplateRow) {
     daysOfMonth: parseSerializedNumberArray(row.daysOfMonth),
     yearlyDaysOfMonth: parseSerializedNumberArray(row.yearlyDaysOfMonth),
     frequencyControl: row.frequencyControl,
-    reminderTime: row.reminderTime ?? '10:00',
+    reminderTime: row.reminderTime,
     startDate: formatTimestamp(row.startDate),
     endDate: formatTimestamp(row.endDate),
-    benefitAmount: row.benefitAmount === null ? null : Number(row.benefitAmount),
-    benefitDescription: row.benefitDescription,
     extraConditionsText: row.extraConditionsText,
+    ruleSourceLinkUrl: (row.ruleSource as { linkUrl?: string } | null)?.linkUrl ?? null,
+    ruleSourceImageUrls: (row.ruleSource as { imageUrls?: string[] } | null)?.imageUrls ?? null,
     benefitCategoryId: row.benefitCategoryId,
     benefitPayPlatformId: row.benefitPayPlatformId,
     benefitUsagePlatformId: row.benefitUsagePlatformId,
     activityCategoryId: row.activityCategoryId,
     participationDifficulty: row.participationDifficulty,
     guideText: row.guideText,
-    rootTemplateId: row.rootTemplateId ?? row.id,
-    tierExclusive: row.tierExclusive === null || row.tierExclusive === undefined
-      ? null
-      : Number(row.tierExclusive) === 1,
-    minAmount: row.minAmount === null ? null : Number(row.minAmount),
-    minCount: row.minCount,
-  }
-}
-
-export function toTaskTemplateGroupEntry(row: TaskTemplateRow) {
-  const d = toTaskTemplateDetail(row)
-  return {
-    title: d.title,
-    ruleBrief: d.ruleBrief,
-    ruleDetail: d.ruleDetail,
-    bankId: d.bankId,
-    bankCardOrganization: d.bankCardOrganization,
-    bankCardTemplateId: d.bankCardTemplateId,
-    bankCardType: d.bankCardType,
-    regionCode: d.regionCode,
-    regionMatchStrategy: d.regionMatchStrategy,
-    repeatType: d.repeatType,
-    daysOfWeek: d.daysOfWeek,
-    yearlyMonths: d.yearlyMonths,
-    daysOfMonth: d.daysOfMonth,
-    yearlyDaysOfMonth: d.yearlyDaysOfMonth,
-    frequencyControl: d.frequencyControl,
-    reminderTime: d.reminderTime,
-    startDate: d.startDate,
-    endDate: d.endDate,
-    benefitAmount: d.benefitAmount,
-    benefitDescription: d.benefitDescription,
-    extraConditionsText: d.extraConditionsText,
-    benefitCategoryId: d.benefitCategoryId,
-    benefitPayPlatformId: d.benefitPayPlatformId,
-    benefitUsagePlatformId: d.benefitUsagePlatformId,
-    activityCategoryId: d.activityCategoryId,
-    participationDifficulty: d.participationDifficulty,
-    guideText: d.guideText,
-    minAmount: d.minAmount,
-    minCount: d.minCount,
+    tiers: tiers.map(t => ({
+      minAmount: t.minAmount ?? null,
+      benefitAmountFixed: t.benefitAmountFixed ?? null,
+      benefitAmountMin: t.benefitAmountMin ?? null,
+      benefitAmountMax: t.benefitAmountMax ?? null,
+      benefitDescription: t.benefitDescription ?? null,
+      quotaPerCycleText: t.quotaPerCycleText ?? null,
+      quotaTotalText: t.quotaTotalText ?? null,
+    })),
+    groupId: row.groupId ?? null,
+    linkedCoupons: Array.isArray(row.linkedCoupons)
+      ? row.linkedCoupons.map(c => ({
+          couponId: Number(c.couponId),
+          purchasePrice: c.purchasePrice ?? null,
+          sku: c.sku ?? null,
+          actualValue: c.actualValue ?? null,
+        }))
+      : [],
+    /**
+     * 编辑回显时按数据形态推断：
+     * - tiers.length > 1 → 互斥（true）
+     * - 行级有 groupId 同伙 → 非互斥（false）；这里仅靠本行无法判断"是否真有同伙"，
+     *   保守处理：本行 tiers.length == 1 且有 groupId → false；都没有 → null
+     */
+    tierExclusive: tiers.length > 1
+      ? true
+      : (row.groupId != null ? false : null),
   }
 }
 

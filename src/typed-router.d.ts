@@ -41,6 +41,13 @@ declare module 'vue-router/auto-routes' {
       { all: ParamValue<false> },
       | never
     >,
+    '/activity-categories/': RouteRecordInfo<
+      '/activity-categories/',
+      '/activity-categories',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
     '/bank-card-activities/edit/': RouteRecordInfo<
       '/bank-card-activities/edit/',
       '/bank-card-activities/edit',
@@ -62,9 +69,44 @@ declare module 'vue-router/auto-routes' {
       Record<never, never>,
       | never
     >,
+    '/banks/': RouteRecordInfo<
+      '/banks/',
+      '/banks',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
+    '/benefit-pay-platforms/': RouteRecordInfo<
+      '/benefit-pay-platforms/',
+      '/benefit-pay-platforms',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
     '/card-templates/': RouteRecordInfo<
       '/card-templates/',
       '/card-templates',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
+    '/coupon-categories/': RouteRecordInfo<
+      '/coupon-categories/',
+      '/coupon-categories',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
+    '/login': RouteRecordInfo<
+      '/login',
+      '/login',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
+    '/usage-platforms/': RouteRecordInfo<
+      '/usage-platforms/',
+      '/usage-platforms',
       Record<never, never>,
       Record<never, never>,
       | never
@@ -108,6 +150,12 @@ declare module 'vue-router/auto-routes' {
       views:
         | never
     }
+    'src/pages/activity-categories/index.vue': {
+      routes:
+        | '/activity-categories/'
+      views:
+        | never
+    }
     'src/pages/bank-card-activities/edit/index.vue': {
       routes:
         | '/bank-card-activities/edit/'
@@ -126,9 +174,39 @@ declare module 'vue-router/auto-routes' {
       views:
         | never
     }
+    'src/pages/banks/index.vue': {
+      routes:
+        | '/banks/'
+      views:
+        | never
+    }
+    'src/pages/benefit-pay-platforms/index.vue': {
+      routes:
+        | '/benefit-pay-platforms/'
+      views:
+        | never
+    }
     'src/pages/card-templates/index.vue': {
       routes:
         | '/card-templates/'
+      views:
+        | never
+    }
+    'src/pages/coupon-categories/index.vue': {
+      routes:
+        | '/coupon-categories/'
+      views:
+        | never
+    }
+    'src/pages/login.vue': {
+      routes:
+        | '/login'
+      views:
+        | never
+    }
+    'src/pages/usage-platforms/index.vue': {
+      routes:
+        | '/usage-platforms/'
       views:
         | never
     }

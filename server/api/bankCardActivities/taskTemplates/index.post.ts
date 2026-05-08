@@ -1,14 +1,17 @@
-import { eq } from 'drizzle-orm'
+import { eq, inArray } from 'drizzle-orm'
 import { createError } from 'h3'
 import { defineHandler } from 'nitro'
 import { referenceData } from '~~/agent/utils/referenceData'
 import { db } from '~~/db'
 import { getBankTaskCreateSchema } from '~~/utils/bankCardActivityForm'
+import { buildRuleSourceJson, commitTemplateImages } from '~~/utils/ruleSourceImages'
 import { toTemplateMutation } from '~~/utils/taskTemplate'
 import { taskTemplate } from '../../../../drizzle/schema'
 
 export default defineHandler(async (event) => {
   await referenceData.ensureInitialized()
+  // 经过 admin-auth middleware 后，event.context.adminUser 必有值；fallback 1 兜底
+  const adminUserId = event.context.adminUser?.id ?? 1
   const body = await event.req.json()
   const parsed = getBankTaskCreateSchema().safeParse(body)
 
@@ -20,16 +23,9 @@ export default defineHandler(async (event) => {
     })
   }
 
-  const { templates, tierExclusive } = parsed.data
-  const effectiveTierExclusive = templates.length > 1 ? tierExclusive : null
+  const tpl = parsed.data
+  const isNonExclusive = tpl.tierExclusive === false && tpl.tiers.length > 1
 
-  const sortedTemplates = [...templates].sort((a, b) => {
-    const aMin = a.minAmount ?? 0
-    const bMin = b.minAmount ?? 0
-    return aMin - bMin
-  })
-
-  // 第一条作为主档，先插入并拿到 id 后用作 root_template_id
   const sharedFields = {
     highPriority: 0,
     isCompleted: 0,
@@ -41,32 +37,56 @@ export default defineHandler(async (event) => {
     createdAt: Date.now(),
   }
 
-  const [firstCreated] = await db.insert(taskTemplate).values({
-    ...toTemplateMutation(sortedTemplates[0], effectiveTierExclusive),
-    ...sharedFields,
-  }).$returningId()
-  const rootId = Number((firstCreated as { id: number }).id)
+  if (!isNonExclusive) {
+    const [created] = await db.insert(taskTemplate).values({
+      ...toTemplateMutation(tpl, adminUserId),
+      ...sharedFields,
+    }).$returningId()
+    const id = Number((created as { id: number }).id)
 
-  // 主档自指 root_template_id
-  await db.update(taskTemplate)
-    .set({ rootTemplateId: rootId })
-    .where(eq(taskTemplate.id, rootId))
+    await commitRuleSourceForRows(id, tpl, [id])
 
-  const createdIds: number[] = [rootId]
+    return { id, ids: [id], title: tpl.title, groupId: tpl.groupId ?? null, tierExclusive: tpl.tierExclusive ?? null }
+  }
 
-  // 其余档位 insert，root_template_id 直接指向主档
-  for (let i = 1; i < sortedTemplates.length; i++) {
+  // 非互斥多档：fan out N 行，第一行 id 作为共享 groupId
+  const createdIds: number[] = []
+  for (const tier of tpl.tiers) {
     const [row] = await db.insert(taskTemplate).values({
-      ...toTemplateMutation(sortedTemplates[i], effectiveTierExclusive),
-      rootTemplateId: rootId,
+      ...toTemplateMutation(tpl, adminUserId, { tiers: [tier] }),
       ...sharedFields,
     }).$returningId()
     createdIds.push(Number((row as { id: number }).id))
   }
 
-  return {
-    rootId,
-    ids: createdIds,
-    title: sortedTemplates[0].title,
-  }
+  const groupId = createdIds[0]
+  await db.update(taskTemplate)
+    .set({ groupId })
+    .where(inArray(taskTemplate.id, createdIds))
+
+  await commitRuleSourceForRows(createdIds[0], tpl, createdIds)
+
+  return { id: groupId, ids: createdIds, title: tpl.title, groupId, tierExclusive: false }
 })
+
+async function commitRuleSourceForRows(
+  imageRootId: number,
+  tpl: { ruleSourceImageUrls?: string[] | null; ruleSourceImageBase64s?: string[] | null; ruleSourceLinkUrl?: string | null },
+  rowIds: number[],
+) {
+  try {
+    const keptUrls = tpl.ruleSourceImageUrls ?? []
+    const newBase64s = tpl.ruleSourceImageBase64s ?? []
+    const finalUrls = await commitTemplateImages(imageRootId, keptUrls, newBase64s)
+    const ruleSource = buildRuleSourceJson(tpl.ruleSourceLinkUrl ?? null, finalUrls)
+    if (rowIds.length === 1) {
+      await db.update(taskTemplate).set({ ruleSource }).where(eq(taskTemplate.id, rowIds[0]))
+    }
+    else {
+      await db.update(taskTemplate).set({ ruleSource }).where(inArray(taskTemplate.id, rowIds))
+    }
+  }
+  catch (e: any) {
+    console.warn(`[taskTemplates POST] rule_source commit failed for rows=${rowIds.join(',')}:`, e?.message ?? e)
+  }
+}

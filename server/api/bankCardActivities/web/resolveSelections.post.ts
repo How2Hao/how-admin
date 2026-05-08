@@ -25,6 +25,7 @@ export default defineHandler(async (event) => {
   const activityCategory = body.activityCategoryId
     ? referenceData.activityCategories.find(item => item.id === body.activityCategoryId)
     : null
+  const activityCategoryById = new Map(referenceData.activityCategories.map(c => [c.id, c]))
 
   return {
     bank: bank
@@ -58,6 +59,13 @@ export default defineHandler(async (event) => {
           label: activityCategory.name,
           value: activityCategory.id,
           icon: activityCategory.icon,
+          parentId: activityCategory.parentId ?? null,
+          parentName: activityCategory.parentId
+            ? (activityCategoryById.get(activityCategory.parentId)?.name ?? null)
+            : null,
+          parentIcon: activityCategory.parentId
+            ? (activityCategoryById.get(activityCategory.parentId)?.icon ?? null)
+            : null,
         }
       : null,
   }

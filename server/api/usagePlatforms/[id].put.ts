@@ -2,6 +2,7 @@ import { Buffer } from 'node:buffer'
 import { eq } from 'drizzle-orm'
 import { createError, readBody } from 'h3'
 import { defineHandler } from 'nitro'
+import { referenceData } from '~~/agent/utils/referenceData'
 import { db } from '~~/db'
 import { uploadFile } from '~~/utils/ossClient'
 import { benefitUsagePlatform } from '../../../drizzle/schema'
@@ -77,5 +78,6 @@ export default defineHandler(async (event) => {
     .where(eq(benefitUsagePlatform.id, id))
     .limit(1)
 
+  referenceData.invalidate()
   return row
 })

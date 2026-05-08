@@ -87,16 +87,16 @@ Response: 更新后完整记录
 
 ## OSS 工具
 
-在 `server/utils/ossClient.ts` 新增：
+**重构 `server/utils/ossClient.ts`**，提取通用底层函数：
 
 ```ts
-async function uploadUsagePlatformIcon(id: number, buf: Buffer): Promise<string>
+// 新增（内部通用，也可对外 export）
+async function uploadFile(key: string, buf: Buffer, contentType = 'image/png'): Promise<string>
 ```
 
-- 上传路径：`usage_platform/{id}.png`
-- Content-Type: `image/png`
-- Cache-Control: `public, max-age=2592000`
-- 返回公开 URL
+- 逻辑：`oss.put(key, buf, { 'Content-Type': contentType, 'Cache-Control': 'public, max-age=2592000' })` → 返回 `${OSS_PUBLIC_BASE_URL}/${key}`
+- 现有 `uploadCardCover` / `uploadPasteImage` 内部改为调用 `uploadFile`，对外签名不变，调用方无需修改
+- 使用平台图标在 API handler 内直接调用 `uploadFile('usage_platform/{id}.png', buf)`，不额外包一层具名函数
 
 ---
 

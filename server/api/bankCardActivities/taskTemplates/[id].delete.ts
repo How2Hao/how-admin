@@ -7,19 +7,18 @@ import { taskTemplate } from '../../../../drizzle/schema'
 
 export default defineHandler(async (event) => {
   const id = parseTaskTemplateId(event.context.params?.id)
-  const [existing] = await db.select({ id: taskTemplate.id }).from(taskTemplate).where(eq(taskTemplate.id, id)).limit(1)
+  const [row] = await db
+    .select({ id: taskTemplate.id })
+    .from(taskTemplate)
+    .where(eq(taskTemplate.id, id))
+    .limit(1)
 
-  if (!existing) {
-    throw createError({
-      statusCode: 404,
-      statusMessage: '模板不存在',
-    })
+  if (!row) {
+    throw createError({ statusCode: 404, statusMessage: '模板不存在' })
   }
 
+  // groupId 同伙不级联删，仅删本行；运营若要清空整个聚合组需逐条删
   await db.delete(taskTemplate).where(eq(taskTemplate.id, id))
 
-  return {
-    id,
-    success: true,
-  }
+  return { id, success: true }
 })

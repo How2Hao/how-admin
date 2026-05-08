@@ -1,5 +1,5 @@
 import * as z from 'zod'
-import { getBankTaskGroupSchema, getBankTemplateSchema } from '../agent/schemas/bankTask'
+import { getBankTemplateSchema } from '../agent/schemas/bankTask'
 import { referenceData } from '../agent/utils/referenceData'
 
 export const bankCardTypeOptions = [
@@ -35,90 +35,125 @@ export function getBankTaskCreateSchema() {
 }
 
 function buildBankTaskCreateSchema() {
-  return getBankTaskGroupSchema().superRefine((value, ctx) => {
-    if (value.templates.length > 1 && value.tierExclusive === null) {
+  // 表单提交：单 template + tiers 数组 + tierExclusive 标识 + 可选 groupId
+  // tierExclusive=null  → 单档或保存时 1 行
+  // tierExclusive=true  → 多档互斥，保存为 1 行 + tiers JSON
+  // tierExclusive=false → 多档非互斥，保存为 N 行（每 tier 1 行）+ 同 groupId
+  const singleTemplate = getBankTemplateSchema().extend({
+    tierExclusive: z.boolean().nullable().optional(),
+    groupId: z.number().nullable().optional(),
+  })
+
+  return singleTemplate.superRefine((tpl, ctx) => {
+    const startDate = parseDateTimeString(tpl.startDate)
+    const endDate = parseDateTimeString(tpl.endDate)
+    const path = (key: string) => [key]
+
+    if (tpl.tiers.length > 1 && (tpl.tierExclusive === null || tpl.tierExclusive === undefined)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: '多档活动必须填 tierExclusive（互斥取一/独立达成）',
-        path: ['tierExclusive'],
+        message: '多档活动需要选择"互斥"或"非互斥"',
+        path: path('tierExclusive'),
       })
     }
 
-    value.templates.forEach((tpl, idx) => {
-      const startDate = parseDateTimeString(tpl.startDate)
-      const endDate = parseDateTimeString(tpl.endDate)
-      const path = (key: string) => ['templates', idx, key]
-
-      if (!dateTimePattern.test(tpl.startDate) || Number.isNaN(startDate)) {
+    tpl.tiers.forEach((tier, tIdx) => {
+      const tierPath = (key: string) => ['tiers', tIdx, key]
+      const hasFixed = tier.benefitAmountFixed != null
+      const hasMin = tier.benefitAmountMin != null
+      const hasMax = tier.benefitAmountMax != null
+      if (!hasFixed && !hasMin && !hasMax) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: 'startDate 格式必须为 YYYY-MM-DD 或 YYYY-MM-DD HH:mm:ss',
-          path: path('startDate'),
+          message: '档位优惠金额：固定金额或区间金额至少填一组',
+          path: tierPath('benefitAmountFixed'),
         })
       }
-      if (!dateTimePattern.test(tpl.endDate) || Number.isNaN(endDate)) {
+      if (hasFixed && (hasMin || hasMax)) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: 'endDate 格式必须为 YYYY-MM-DD 或 YYYY-MM-DD HH:mm:ss',
-          path: path('endDate'),
+          message: '档位优惠金额：固定金额与区间金额不能同时填写',
+          path: tierPath('benefitAmountFixed'),
         })
       }
-      if (!reminderTimePattern.test(tpl.reminderTime)) {
+      if (hasMin && hasMax && tier.benefitAmountMin! > tier.benefitAmountMax!) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: 'reminderTime 格式必须为 HH:mm',
-          path: path('reminderTime'),
+          message: '档位区间优惠下限不能高于上限',
+          path: tierPath('benefitAmountMax'),
         })
-      }
-      if (!Number.isNaN(startDate) && !Number.isNaN(endDate) && startDate > endDate) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: '结束时间不能早于开始时间',
-          path: path('endDate'),
-        })
-      }
-      if (tpl.repeatType === 'WEEKLY' && (!tpl.daysOfWeek || tpl.daysOfWeek.length === 0)) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: 'WEEKLY 类型必须提供 daysOfWeek',
-          path: path('daysOfWeek'),
-        })
-      }
-      if (tpl.repeatType === 'MONTHLY' && (!tpl.daysOfMonth || tpl.daysOfMonth.length === 0)) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: 'MONTHLY 类型必须提供 daysOfMonth',
-          path: path('daysOfMonth'),
-        })
-      }
-      if (tpl.repeatType === 'YEARLY') {
-        if (!tpl.yearlyMonths || tpl.yearlyMonths.length === 0) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: 'YEARLY 类型必须提供 yearlyMonths',
-            path: path('yearlyMonths'),
-          })
-        }
-        if (!tpl.yearlyDaysOfMonth || tpl.yearlyDaysOfMonth.length === 0) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: 'YEARLY 类型必须提供 yearlyDaysOfMonth',
-            path: path('yearlyDaysOfMonth'),
-          })
-        }
-        if (
-          tpl.yearlyMonths
-          && tpl.yearlyDaysOfMonth
-          && tpl.yearlyMonths.length !== tpl.yearlyDaysOfMonth.length
-        ) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: 'yearlyMonths 与 yearlyDaysOfMonth 长度必须一致',
-            path: path('yearlyDaysOfMonth'),
-          })
-        }
       }
     })
+
+    if (!dateTimePattern.test(tpl.startDate) || Number.isNaN(startDate)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'startDate 格式必须为 YYYY-MM-DD 或 YYYY-MM-DD HH:mm:ss',
+        path: path('startDate'),
+      })
+    }
+    if (!dateTimePattern.test(tpl.endDate) || Number.isNaN(endDate)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'endDate 格式必须为 YYYY-MM-DD 或 YYYY-MM-DD HH:mm:ss',
+        path: path('endDate'),
+      })
+    }
+    if (tpl.reminderTime != null && tpl.reminderTime !== '' && !reminderTimePattern.test(tpl.reminderTime)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'reminderTime 格式必须为 HH:mm',
+        path: path('reminderTime'),
+      })
+    }
+    if (!Number.isNaN(startDate) && !Number.isNaN(endDate) && startDate > endDate) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: '结束时间不能早于开始时间',
+        path: path('endDate'),
+      })
+    }
+    if (tpl.repeatType === 'WEEKLY' && (!tpl.daysOfWeek || tpl.daysOfWeek.length === 0)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'WEEKLY 类型必须提供 daysOfWeek',
+        path: path('daysOfWeek'),
+      })
+    }
+    if (tpl.repeatType === 'MONTHLY' && (!tpl.daysOfMonth || tpl.daysOfMonth.length === 0)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'MONTHLY 类型必须提供 daysOfMonth',
+        path: path('daysOfMonth'),
+      })
+    }
+    if (tpl.repeatType === 'YEARLY') {
+      if (!tpl.yearlyMonths || tpl.yearlyMonths.length === 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'YEARLY 类型必须提供 yearlyMonths',
+          path: path('yearlyMonths'),
+        })
+      }
+      if (!tpl.yearlyDaysOfMonth || tpl.yearlyDaysOfMonth.length === 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'YEARLY 类型必须提供 yearlyDaysOfMonth',
+          path: path('yearlyDaysOfMonth'),
+        })
+      }
+      if (
+        tpl.yearlyMonths
+        && tpl.yearlyDaysOfMonth
+        && tpl.yearlyMonths.length !== tpl.yearlyDaysOfMonth.length
+      ) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'yearlyMonths 与 yearlyDaysOfMonth 长度必须一致',
+          path: path('yearlyDaysOfMonth'),
+        })
+      }
+    }
   })
 }
 
@@ -151,11 +186,17 @@ export function getReferenceOptions() {
       code: item.code,
       icon: item.icon,
     })),
-    activityCategories: referenceData.activityCategories.map(item => ({
-      label: item.name,
-      value: item.id,
-      icon: item.icon,
-    })),
+    activityCategories: (() => {
+      const categoryById = new Map(referenceData.activityCategories.map(c => [c.id, c]))
+      return referenceData.activityCategories.map(item => ({
+        label: item.name,
+        value: item.id,
+        icon: item.icon,
+        parentId: item.parentId ?? null,
+        parentName: item.parentId ? (categoryById.get(item.parentId)?.name ?? null) : null,
+        parentIcon: item.parentId ? (categoryById.get(item.parentId)?.icon ?? null) : null,
+      }))
+    })(),
     enums: {
       bankCardType: bankCardTypeOptions,
       regionMatchStrategy: regionMatchStrategyOptions,
@@ -177,5 +218,6 @@ export function serializeNumberArray(values: number[] | null) {
   if (!values || values.length === 0)
     return null
 
-  return values.join(',')
+  // JSON 格式存储（如 "[1,3,5]"），跟 how-api 端的 parseJsonArray 对齐
+  return JSON.stringify(values)
 }
