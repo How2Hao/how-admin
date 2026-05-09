@@ -91,16 +91,30 @@ async function loadCards() {
 async function handleToggle(id: number, next: 0 | 1) {
   // 乐观更新
   const card = cards.value.find(c => c.id === id)
-  const prev = card?.isVisible
+  const prev = card ? { isVisible: card.isVisible, dataSource: card.dataSource } : null
   if (card) card.isVisible = next
   try {
-    await requestJson(`/api/cardTemplates/${id}/visibility`, {
+    const res = await requestJson<{
+      id: number
+      isVisible: number
+      dataSource: string
+      success: boolean
+    }>(`/api/cardTemplates/${id}/visibility`, {
       method: 'PATCH',
       body: { is_visible: next },
     })
+    // 后端可能把 data_source 升级为 flyert（is_visible=1 且原来不是 flyert）
+    if (card && res.dataSource !== card.dataSource) {
+      card.dataSource = res.dataSource
+      // 来源变了，刷新左侧来源分布计数
+      loadGroups()
+    }
   }
   catch (e: any) {
-    if (card && prev !== undefined) card.isVisible = prev
+    if (card && prev) {
+      card.isVisible = prev.isVisible
+      card.dataSource = prev.dataSource
+    }
     MessagePlugin.error(e?.message ?? '切换显示失败')
   }
 }

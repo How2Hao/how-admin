@@ -24,7 +24,7 @@ export default defineHandler(async (event) => {
   const next = v === 1 || v === true ? 1 : 0
 
   const [existing] = await db
-    .select({ id: bankCardTemplate.id })
+    .select({ id: bankCardTemplate.id, dataSource: bankCardTemplate.dataSource })
     .from(bankCardTemplate)
     .where(eq(bankCardTemplate.id, id))
     .limit(1)
@@ -32,10 +32,23 @@ export default defineHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: '模板不存在' })
   }
 
+  // C 端目前仍按 data_source='flyert' 取数据。is_visible=1 时若来源不是 flyert，
+  // 同步把 data_source 升级为 flyert，让 C 端立刻可见（C 端切到 is_visible 过滤前的过渡逻辑）
+  const upgradeDataSource = next === 1 && existing.dataSource !== 'flyert'
+  const update: Record<string, unknown> = { isVisible: next, updatedAt: Date.now() }
+  if (upgradeDataSource) {
+    update.dataSource = 'flyert'
+  }
+
   await db
     .update(bankCardTemplate)
-    .set({ isVisible: next, updatedAt: Date.now() })
+    .set(update)
     .where(eq(bankCardTemplate.id, id))
 
-  return { id, isVisible: next, success: true }
+  return {
+    id,
+    isVisible: next,
+    dataSource: upgradeDataSource ? 'flyert' : existing.dataSource,
+    success: true,
+  }
 })
