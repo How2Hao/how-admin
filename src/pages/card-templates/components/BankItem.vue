@@ -8,7 +8,6 @@ defineProps<{
   bankId: string
   bankName: string
   bankLogo: string | null
-  bankColor: string | null
   total: number
   sourceCounts: SourceCounts
   selected: boolean

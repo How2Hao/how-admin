@@ -11,7 +11,6 @@ interface BankGroup {
   bankId: string
   bankName: string
   bankLogo: string | null
-  bankColor: string | null
   total: number
   sourceCounts: { flyert: number, '51credit': number, self: number }
 }
@@ -45,15 +44,25 @@ const selectedBank = computed(() =>
 
 // ==== loaders ====
 async function loadGroups() {
-  const res = await requestJson<{ list: BankGroup[] }>('/api/cardTemplates/bank-groups')
-  groups.value = res.list
-  if (!selectedBankId.value && res.list.length) {
-    selectedBankId.value = res.list[0].bankId   // 默认选总数最多那家（接口已按 total DESC 排序）
+  try {
+    const res = await requestJson<{ list: BankGroup[] }>('/api/cardTemplates/bank-groups')
+    groups.value = res.list
+    if (!selectedBankId.value && res.list.length) {
+      selectedBankId.value = res.list[0].bankId   // 默认选总数最多那家（接口已按 total DESC 排序）
+    }
+  }
+  catch (e: any) {
+    MessagePlugin.error(e?.message ?? '加载银行分组失败')
   }
 }
 
 async function loadOptions() {
-  optionsRef.value = await requestJson<OptionsResp>('/api/cardTemplates/options')
+  try {
+    optionsRef.value = await requestJson<OptionsResp>('/api/cardTemplates/options')
+  }
+  catch (e: any) {
+    MessagePlugin.error(e?.message ?? '加载选项失败')
+  }
 }
 
 async function loadCards() {

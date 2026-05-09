@@ -6,13 +6,14 @@ import { bank, bankCardTemplate, cardLevel, cardOrganization } from '../../../dr
 export default defineHandler(async (event) => {
   const url = new URL(event.req.url ?? '', 'http://localhost')
   const page = Math.max(Number(url.searchParams.get('page') ?? '1') || 1, 1)
-  const pageSize = Math.min(Math.max(Number(url.searchParams.get('pageSize') ?? '20') || 20, 1), 100)
+  const pageSize = Math.min(Math.max(Number(url.searchParams.get('pageSize') ?? '20') || 20, 1), 500)
   const dataSource = url.searchParams.get('dataSource')?.trim() ?? ''
   const bankIdParam = url.searchParams.get('bankId')?.trim() ?? ''
   const keyword = url.searchParams.get('keyword')?.trim() ?? ''
 
   // bank_card_template.bank_id 是 varchar，存的是 bank.id 的字符串形式（如 '295'）
   const conditions = [
+    eq(bankCardTemplate.cardType, '1'), // 信用卡页专用 hardcode
     dataSource ? eq(bankCardTemplate.dataSource, dataSource) : undefined,
     bankIdParam ? eq(bankCardTemplate.bankId, bankIdParam) : undefined,
     keyword ? like(bankCardTemplate.cardName, `%${keyword}%`) : undefined,

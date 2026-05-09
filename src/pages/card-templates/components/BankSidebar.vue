@@ -7,7 +7,6 @@ interface BankGroup {
   bankId: string
   bankName: string
   bankLogo: string | null
-  bankColor: string | null
   total: number
   sourceCounts: SourceCounts
 }
@@ -42,7 +41,6 @@ function handlePick(id: string) {
         :bank-id="g.bankId"
         :bank-name="g.bankName"
         :bank-logo="g.bankLogo"
-        :bank-color="g.bankColor"
         :total="g.total"
         :source-counts="g.sourceCounts"
         :selected="g.bankId === selectedBankId"
