@@ -17,7 +17,11 @@ export default defineHandler(async (event) => {
   if (!body || body.is_visible === undefined) {
     throw createError({ statusCode: 400, statusMessage: 'is_visible 不能为空' })
   }
-  const next = body.is_visible === 1 || body.is_visible === true ? 1 : 0
+  const v = body.is_visible
+  if (v !== 0 && v !== 1 && typeof v !== 'boolean') {
+    throw createError({ statusCode: 400, statusMessage: 'is_visible 必须为 0、1 或 boolean' })
+  }
+  const next = v === 1 || v === true ? 1 : 0
 
   const [existing] = await db
     .select({ id: bankCardTemplate.id })
