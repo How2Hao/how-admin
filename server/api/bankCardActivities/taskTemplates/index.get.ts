@@ -92,7 +92,8 @@ export default defineHandler(async (event) => {
       yearlyDaysOfMonth: parseSerializedNumberArray(row.yearlyDaysOfMonth),
       startDate: formatTimestamp(row.startDate),
       endDate: formatTimestamp(row.endDate),
-      updatedAt: row.updatedAt,
+      // updatedAt 来自 datetime 列，drizzle 返回字符串 'YYYY-MM-DD HH:mm:ss[.ms]'；列表只展示日期
+      updatedAt: typeof row.updatedAt === 'string' ? row.updatedAt.slice(0, 10) : row.updatedAt,
       tiers: Array.isArray(row.tiers)
         ? row.tiers.map(t => ({
             minAmount: t.minAmount ?? null,

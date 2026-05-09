@@ -184,19 +184,14 @@ const columns = computed<PrimaryTableCol<TableRowData>[]>(() => [
     width: 100,
   },
   {
-    colKey: 'startDate',
-    title: '开始时间',
-    width: 160,
-  },
-  {
-    colKey: 'endDate',
-    title: '结束时间',
-    width: 160,
+    colKey: 'dateRange',
+    title: '起止日期',
+    width: 200,
   },
   {
     colKey: 'updatedAt',
-    title: '更新时间',
-    width: 160,
+    title: '更新日期',
+    width: 120,
   },
   {
     colKey: 'isVisible',
@@ -396,6 +391,32 @@ function handleCreate() {
   editingId.value = null
   resetForm()
   formVisible.value = true
+}
+
+function formatDateRange(row: TaskTemplateListItem): string {
+  // startDate / endDate 来自后端 formatTimestamp，形如 'YYYY-MM-DD HH:mm:ss'
+  // 列表只显示日期部分；任一为空显示占位
+  const s = (row.startDate || '').slice(0, 10)
+  const e = (row.endDate || '').slice(0, 10)
+  if (!s && !e) return '—'
+  return `${s || '?'} ~ ${e || '?'}`
+}
+
+async function handleCopy(row: TaskTemplateListItem) {
+  if ((row as any).groupId != null) {
+    MessagePlugin.warning('聚合组活动暂不支持复制')
+    return
+  }
+  try {
+    await requestJson<{ id: number, success: boolean }>(`/api/bankCardActivities/taskTemplates/${row.id}/copy`, {
+      method: 'POST',
+    })
+    MessagePlugin.success('已复制为副本（前台不可见，可手动开启）')
+    await loadList()
+  }
+  catch (e: any) {
+    MessagePlugin.error(e?.message ?? '复制失败')
+  }
 }
 
 async function handleEdit(row: TaskTemplateListItem) {
@@ -725,10 +746,23 @@ function handleDeleteCancel() {
               @change="(v) => handleToggleVisible(row as TaskTemplateListItem, v)"
             />
           </template>
+          <template #dateRange="{ row }">
+            <span class="date-range-cell">
+              {{ formatDateRange(row as TaskTemplateListItem) }}
+            </span>
+          </template>
           <template #op="{ row }">
             <div class="flex gap-2">
               <t-button theme="primary" variant="text" @click="handleEdit(row as TaskTemplateListItem)">
                 编辑
+              </t-button>
+              <t-button
+                variant="text"
+                :disabled="(row as any).groupId != null"
+                :title="(row as any).groupId != null ? '聚合组活动暂不支持复制' : ''"
+                @click="handleCopy(row as TaskTemplateListItem)"
+              >
+                复制
               </t-button>
               <t-button theme="danger" variant="text" @click="handleDeleteClick(row as TaskTemplateListItem)">
                 删除
@@ -909,6 +943,13 @@ function handleDeleteCancel() {
   font-size: 13px;
   color: #1e293b;
   white-space: nowrap;
+}
+
+.date-range-cell {
+  font-size: 13px;
+  color: #1e293b;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 
 /* 活动地区：单行省略；hover 通过 title 看 regionCode 原值 */
