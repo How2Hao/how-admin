@@ -46,6 +46,7 @@ function onSwitchClick(card: CardItemData, e: MouseEvent) {
       <div class="meta">
         {{ [card.cardLevelName, card.cardOrganizationName].filter(Boolean).join(' · ') || '—' }}
       </div>
+      <div class="id">#{{ card.id }}</div>
     </div>
 
     <div
@@ -106,6 +107,12 @@ function onSwitchClick(card: CardItemData, e: MouseEvent) {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+.id {
+  color: #bbb;
+  font-size: 11px;
+  margin-top: 2px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 .switch {
   position: absolute;
