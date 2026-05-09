@@ -23,7 +23,7 @@ const emit = defineEmits<{
       <span class="count">{{ total }} 张</span>
       <div class="search">
         <t-input
-          :value="keyword"
+          :model-value="keyword"
           placeholder="搜索卡名"
           clearable
           size="small"
