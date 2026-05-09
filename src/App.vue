@@ -57,7 +57,7 @@ async function handleLogout() {
     </t-header>
     <t-layout class="min-w-0 overflow-hidden">
       <t-aside style="border-top: 1px solid var(--component-border)">
-        <t-menu :value="activeMenu" theme="light" style="margin-right: 50px" height="550px" :default-expanded="['bank-card-activities']">
+        <t-menu :value="activeMenu" theme="light" style="margin-right: 50px" height="550px" :default-expanded="['bank-card-activities', '/card-templates']">
           <t-menu-item value="/" to="/">
             <template #icon>
               <t-icon name="dashboard" />
@@ -90,12 +90,26 @@ async function handleLogout() {
               模板管理
             </t-menu-item>
           </t-submenu>
-          <t-menu-item value="/card-templates" to="/card-templates">
+          <t-submenu value="/card-templates">
             <template #icon>
-              <div i-carbon:credit-card mr-3 />
+              <div i-carbon:purchase mr-3 />
             </template>
-            卡片模板
-          </t-menu-item>
+            <template #title>
+              <span>卡片模板管理</span>
+            </template>
+            <t-menu-item value="/card-templates/credit" to="/card-templates/credit">
+              <template #icon>
+                <div i-carbon:credit-card mr-2 />
+              </template>
+              信用卡管理
+            </t-menu-item>
+            <t-menu-item value="/card-templates/debit" to="/card-templates/debit">
+              <template #icon>
+                <div i-carbon:money mr-2 />
+              </template>
+              借记卡管理
+            </t-menu-item>
+          </t-submenu>
           <t-menu-item value="/usage-platforms" to="/usage-platforms">
             <template #icon>
               <div i-carbon:application mr-3 />
