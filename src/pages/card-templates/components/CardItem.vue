@@ -20,9 +20,6 @@ const emit = defineEmits<{
 
 const imgError = ref(false)
 
-function onCardClick() {
-  emit('edit', /* injected via template */ 0)
-}
 function onSwitchClick(card: CardItemData, e: MouseEvent) {
   e.stopPropagation()
   emit('toggle', card.id, card.isVisible === 1 ? 0 : 1)
