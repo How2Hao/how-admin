@@ -18,6 +18,7 @@ export default defineHandler(async (event) => {
       cardLevel: bankCardTemplate.cardLevel,
       cardOrganization: bankCardTemplate.cardOrganization,
       cover: bankCardTemplate.cover,
+      isVisible: bankCardTemplate.isVisible,
       alias: bankCardTemplate.alias,
       tags: bankCardTemplate.tags,
       dataSource: bankCardTemplate.dataSource,
