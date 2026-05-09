@@ -34,6 +34,7 @@ declare module 'vue' {
     TDatePicker: typeof import('tdesign-vue-next')['DatePicker']
     TDialog: typeof import('tdesign-vue-next')['Dialog']
     TDrawer: typeof import('tdesign-vue-next')['Drawer']
+    TEmpty: typeof import('tdesign-vue-next')['Empty']
     TEnhancedTable: typeof import('tdesign-vue-next')['EnhancedTable']
     TFooter: typeof import('tdesign-vue-next')['Footer']
     TForm: typeof import('tdesign-vue-next')['Form']
