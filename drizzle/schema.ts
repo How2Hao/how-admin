@@ -190,6 +190,7 @@ export const bankCardTemplate = mysqlTable('bank_card_template', {
   cardLevel: varchar('card_level', { length: 255 }),
   cardOrganization: varchar('card_organization', { length: 50 }).default('UNIONPAY').notNull(),
   cover: varchar({ length: 500 }),
+  isVisible: tinyint('is_visible').default(1).notNull(),
   alias: varchar({ length: 255 }),
   tags: varchar({ length: 1024 }),
   dataSource: varchar('data_source', { length: 50 }).default('51credit').notNull(),
