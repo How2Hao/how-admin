@@ -236,7 +236,7 @@ async function submit(action: 'send' | 'draft') {
       }
       else {
         MessagePlugin.success(
-          `发送完成 · 受众 ${result.total} · inbox ${result.inboxWritten} · APNs ${result.sent} 成功 / ${result.failed} 失败`
+          `发送完成 · 受众 ${result.total} · 消息中心 ${result.inboxWritten} · 横幅 ${result.sent} 成功 / ${result.failed} 失败`
           + (result.filteredByType > 0 ? ` · 被类型开关过滤 ${result.filteredByType}` : '')
           + (result.filteredByMaster > 0 ? ` · 总开关关闭 ${result.filteredByMaster}` : ''),
         )
