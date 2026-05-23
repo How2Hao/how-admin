@@ -134,11 +134,13 @@ const editForm = ref<{
   resolutionType: ResolutionType
   minAppVersion: string
   resolutionNote: string
+  notifyUser: boolean
 }>({
   status: 'OPEN',
   resolutionType: 'NONE',
   minAppVersion: '',
   resolutionNote: '',
+  notifyUser: false,
 })
 const editSubmitting = ref(false)
 
@@ -288,6 +290,8 @@ function openImage(url: string) {
   previewImage.value = url
 }
 
+const FEEDBACK_REPLY_TITLE = '管理员已回复你的反馈'
+
 function openEdit(row: FeedbackRow) {
   editing.value = row
   editForm.value = {
@@ -295,8 +299,21 @@ function openEdit(row: FeedbackRow) {
     resolutionType: row.resolutionType ?? 'NONE',
     minAppVersion: row.minAppVersion ?? '',
     resolutionNote: row.resolutionNote ?? '',
+    // 首次置为「已修复」默认开启通知；已是已修复则默认关（避免重复打扰，可手动补发）
+    notifyUser: (row.status ?? 'OPEN') !== 'RESOLVED',
   }
 }
+
+/** 有回复说明才能通知（推送正文取自它） */
+const canNotify = computed(() => editForm.value.resolutionNote.trim().length > 0)
+/** 实际是否会发：状态=已修复 + 勾选 + 有正文 */
+const willNotify = computed(() =>
+  editForm.value.status === 'RESOLVED' && editForm.value.notifyUser && canNotify.value,
+)
+/** 推送正文预览（截断 200） */
+const notifyPreviewBody = computed(() => editForm.value.resolutionNote.trim().slice(0, 200))
+/** 确认按钮文案 */
+const confirmBtnContent = computed(() => (willNotify.value ? '保存并通知' : '保存'))
 
 function closeEdit() {
   editing.value = null
@@ -317,6 +334,7 @@ async function submitEdit() {
         resolutionType: editForm.value.resolutionType,
         minAppVersion: editForm.value.minAppVersion.trim() || null,
         resolutionNote: editForm.value.resolutionNote.trim() || null,
+        notifyUser: willNotify.value,
       }),
       headers: { 'Content-Type': 'application/json' },
     })
@@ -343,6 +361,10 @@ watch(() => editForm.value.status, (next) => {
   if (next !== 'RESOLVED') {
     editForm.value.resolutionType = 'NONE'
     editForm.value.minAppVersion = ''
+    editForm.value.notifyUser = false
+  }
+  else {
+    editForm.value.notifyUser = editing.value?.status !== 'RESOLVED'
   }
 })
 </script>
@@ -485,7 +507,7 @@ watch(() => editForm.value.status, (next) => {
     <t-dialog
       :visible="!!editing"
       header="处理反馈"
-      :confirm-btn="{ content: '保存', loading: editSubmitting }"
+      :confirm-btn="{ content: confirmBtnContent, loading: editSubmitting }"
       :cancel-btn="{ content: '取消' }"
       width="540"
       @close="closeEdit"
@@ -523,6 +545,19 @@ watch(() => editForm.value.status, (next) => {
           :maxlength="500"
           :autosize="{ minRows: 2, maxRows: 5 }"
         />
+      </t-form-item>
+      <t-form-item v-if="editForm.status === 'RESOLVED'" label="通知用户">
+        <div class="w-full">
+          <t-switch v-model="editForm.notifyUser" :disabled="!canNotify" />
+          <span class="ml-2 text-xs text-gray-400">
+            {{ canNotify ? '保存时推送给用户（关推送也会进消息中心）' : '填写回复说明后可通知' }}
+          </span>
+          <div v-if="willNotify" class="mt-2 p-3 rounded border border-gray-200 bg-gray-50">
+            <div class="text-xs text-gray-400 mb-1">推送预览</div>
+            <div class="text-sm font-medium">{{ FEEDBACK_REPLY_TITLE }}</div>
+            <div class="text-sm text-gray-600 whitespace-pre-wrap break-words">{{ notifyPreviewBody }}</div>
+          </div>
+        </div>
       </t-form-item>
     </t-dialog>
 
