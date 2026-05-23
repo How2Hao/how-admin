@@ -619,6 +619,8 @@ export const pushTask = mysqlTable('push_task', {
   triggerSource: varchar('trigger_source', { length: 20 }).default('ADMIN').notNull(),
   // ACTIVITY / ANNOUNCEMENT / FEEDBACK_REPLY / SYSTEM — 决定走用户哪个子开关
   type: varchar({ length: 40 }).default('ACTIVITY').notNull(),
+  // 下发方式：APNS=横幅+消息中心；INBOX=仅消息中心（永不发横幅）
+  deliveryMode: varchar('delivery_mode', { length: 20 }).default('APNS').notNull(),
 
   audienceType: varchar('audience_type', { length: 20 }).notNull(),
   audienceUserIds: json('audience_user_ids'),
