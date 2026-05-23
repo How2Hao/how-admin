@@ -20,6 +20,7 @@ interface CreatePayload {
 
   landingType?: 'NONE' | 'DEEPLINK' | 'WEB'
   landingPayload?: Record<string, unknown> | null
+  deliveryMode?: 'APNS' | 'INBOX'
 
   /** 'send' 立即发；'draft' 仅存草稿；'schedule' 定时（未实现） */
   action?: 'send' | 'draft' | 'schedule'
@@ -69,6 +70,11 @@ export default defineHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'landingType 不合法' })
   }
 
+  const deliveryMode = body.deliveryMode ?? 'APNS'
+  if (!['APNS', 'INBOX'].includes(deliveryMode)) {
+    throw createError({ statusCode: 400, statusMessage: 'deliveryMode 不合法' })
+  }
+
   // 估算受众规模（快照）
   const userIds = await resolveAudienceUserIds(
     audienceType === 'ALL'
@@ -89,6 +95,7 @@ export default defineHandler(async (event) => {
     status: initialStatus,
     triggerSource: 'ADMIN',
     type,
+    deliveryMode,
     audienceType,
     audienceUserIds: body.audienceUserIds ?? null as any,
     audienceTagIds: body.audienceTagIds ?? null as any,
