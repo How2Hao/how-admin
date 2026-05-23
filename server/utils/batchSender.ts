@@ -9,35 +9,10 @@ import {
 } from '../../drizzle/schema'
 import { resolveAudienceUserIds } from './audienceResolver'
 import { sendPushToDevice } from './apnsClient'
+import type { NotificationPrefs } from './notificationDelivery'
+import { DEFAULT_PREFS, decideDelivery, typeToSubscriptionKey } from './notificationDelivery'
 
 const APNS_CONCURRENCY = 50
-
-/** push_task.type → user_settings.notification 子开关字段 */
-function typeToSubscriptionKey(type: string): keyof NotificationPrefs | null {
-  switch (type) {
-    case 'ACTIVITY': return 'typeActivity'
-    case 'ANNOUNCEMENT': return 'typeAnnouncement'
-    case 'FEEDBACK_REPLY': return 'typeFeedbackReply'
-    case 'SYSTEM': return null     // SYSTEM 不受用户开关控制（强制下发）
-    default: return null
-  }
-}
-
-interface NotificationPrefs {
-  masterEnabled: boolean
-  typeActivity: boolean
-  typeAnnouncement: boolean
-  typeFeedbackReply: boolean
-  typeTaskReminder: boolean
-}
-
-const DEFAULT_PREFS: NotificationPrefs = {
-  masterEnabled: true,
-  typeActivity: true,
-  typeAnnouncement: true,
-  typeFeedbackReply: true,
-  typeTaskReminder: true,
-}
 
 /**
  * 执行一次 push_task 的发送：
@@ -96,27 +71,26 @@ export async function executePushTask(taskId: number): Promise<{
     const prefsByUser = await loadNotificationPrefs(userIds)
     const subKey = typeToSubscriptionKey(task.type)
 
-    const inboxOnlyUsers: number[] = []  // 写 inbox 不推 APNs
-    const apnsUsers: number[] = []       // 写 inbox + 推 APNs
-    let filteredByType = 0
+    const inboxOnlyUsers: number[] = []  // 写 inbox 不推横幅
+    const apnsUsers: number[] = []       // 写 inbox + 推横幅
+    let filteredByType = 0    // 类型子开关关：已写 inbox，未推横幅
+    let filteredByMaster = 0  // 总开关关（类型开）：已写 inbox，未推横幅
+
+    // 任务级「仅消息中心」：所有人都不发横幅
+    const inboxOnlyMode = task.deliveryMode === 'INBOX'
 
     for (const uid of userIds) {
       const prefs = prefsByUser.get(uid) ?? DEFAULT_PREFS
-      // 类型订阅关闭：完全跳过
-      if (subKey && !prefs[subKey]) {
-        filteredByType++
-        continue
-      }
-      // 总开关关闭：写 inbox，不推 APNs
-      if (!prefs.masterEnabled) {
-        inboxOnlyUsers.push(uid)
-        continue
-      }
-      apnsUsers.push(uid)
+      const { channel, suppressedBy } = inboxOnlyMode
+        ? { channel: 'INBOX_ONLY' as const, suppressedBy: null }
+        : decideDelivery(prefs, subKey)
+      if (suppressedBy === 'TYPE') filteredByType++
+      else if (suppressedBy === 'MASTER') filteredByMaster++
+      if (channel === 'APNS') apnsUsers.push(uid)
+      else inboxOnlyUsers.push(uid)
     }
 
     const inboxWrittenTotal = inboxOnlyUsers.length + apnsUsers.length
-    const filteredByMaster = inboxOnlyUsers.length
 
     // 3. 写 notification_message
     const [insertedMsg] = await db.insert(notificationMessage).values({
