@@ -237,7 +237,7 @@ onMounted(load)
                 variant="light"
                 size="small"
               >
-                {{ row.channel || '—' }}
+                {{ row.channel === 'APNS' ? '横幅' : row.channel === 'INBOX' ? '消息中心' : row.channel || '—' }}
               </t-tag>
             </template>
             <template #status="{ row }">
@@ -261,7 +261,7 @@ onMounted(load)
             <template #openedAt="{ row }">
               <div>
                 <div class="text-xs">{{ fmtTime(row.readAt) }}</div>
-                <div v-if="row.openedVia" class="text-xs text-gray-400">{{ row.openedVia === 'PUSH_TAP' ? '点 push' : '开 inbox' }}</div>
+                <div v-if="row.openedVia" class="text-xs text-gray-400">{{ row.openedVia === 'PUSH_TAP' ? '横幅打开' : '消息中心打开' }}</div>
               </div>
             </template>
           </t-table>
