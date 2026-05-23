@@ -1,9 +1,10 @@
-import { and, eq, isNotNull } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 import { createError, readBody } from 'h3'
 import { defineHandler } from 'nitro'
 import { db } from '~~/db'
-import { sendPushToDevice } from '~~/utils/apnsClient'
-import { deviceTokens, notificationMessage, notificationUserInbox, userFeedback } from '../../../drizzle/schema'
+import { executePushTask } from '~~/utils/batchSender'
+import { buildFeedbackReplyTaskValues } from '~~/utils/feedbackReplyTask'
+import { pushTask, userFeedback } from '../../../drizzle/schema'
 
 const STATUSES = ['OPEN', 'IN_PROGRESS', 'RESOLVED', 'WONT_FIX'] as const
 const RESOLUTION_TYPES = ['NONE', 'NO_UPDATE', 'NEEDS_UPDATE'] as const
@@ -22,6 +23,7 @@ export default defineHandler(async (event) => {
     resolutionType?: string
     minAppVersion?: string | null
     resolutionNote?: string | null
+    notifyUser?: boolean
   }>(event)
 
   const status = body?.status as Status | undefined
@@ -73,19 +75,14 @@ export default defineHandler(async (event) => {
     })
     .where(eq(userFeedback.id, id))
 
-  // 反馈被回复时通知用户（仅当 状态变为 RESOLVED + 有 resolutionNote + 之前不是 RESOLVED）
-  if (
-    status === 'RESOLVED'
-    && resolutionNote
-    && existing.prevStatus !== 'RESOLVED'
-    && existing.userId
-  ) {
+  // 显式通知：运营勾选「通知用户」且有回复说明时，复用推送任务能力下发
+  if (body?.notifyUser === true && resolutionNote && existing.userId) {
     try {
-      await notifyFeedbackResolved(existing.userId, id, resolutionNote)
+      await sendFeedbackReplyPush(existing.userId, id, resolutionNote, event)
     }
     catch (e: any) {
-      console.error('[feedback resolve push] failed:', e?.message ?? e)
-      // 不阻塞主流程
+      console.error('[feedback reply push] failed:', e?.message ?? e)
+      // 不阻塞主流程：反馈状态已保存
     }
   }
 
@@ -93,58 +90,14 @@ export default defineHandler(async (event) => {
 })
 
 /**
- * 反馈被回复时：写 inbox + 给该用户所有 active iOS 设备推送
- * 复用 audienceResolver 思路，简化版（仅 1 个用户）
+ * 反馈回复推送：建一条单用户 FEEDBACK_REPLY push_task，再走标准 executePushTask。
+ * inbox 必达由 batchSender 统一语义保证（关推送/子开关仅不推横幅）。
  */
-async function notifyFeedbackResolved(userId: number, feedbackId: number, resolutionNote: string) {
-  const now = Date.now()
-  const title = '管理员已回复你的反馈'
-  const body = resolutionNote.slice(0, 200)
-
-  // 1) 写 notification_message
-  const [insertedMsg] = await db.insert(notificationMessage).values({
-    type: 'FEEDBACK_REPLY',
-    title,
-    body,
-    imageUrl: null,
-    landingType: 'DEEPLINK',
-    landingPayload: { route: '/profile/feedback', params: { feedbackId } } as any,
-    sourcePushTaskId: null,
-    targetUserId: userId,
-    createdAt: now,
-  } as any)
-  const messageId = (insertedMsg as any)?.insertId as number
-
-  // 2) 写 notification_user_inbox
-  await db.insert(notificationUserInbox).values({
-    userId,
-    messageId,
-    readAt: null,
-    archivedAt: null,
-    createdAt: now,
-  } as any)
-
-  // 3) 给该用户所有 active iOS 设备发 APNs
-  const devices = await db.select({
-    apnsToken: deviceTokens.apnsToken,
-    apnsEnv: deviceTokens.apnsEnv,
-  }).from(deviceTokens).where(and(
-    eq(deviceTokens.userId, userId),
-    eq(deviceTokens.isActive, 1),
-    eq(deviceTokens.platform, 'IOS'),
-    isNotNull(deviceTokens.apnsToken),
-  ))
-
-  await Promise.all(devices.map(d =>
-    sendPushToDevice(d.apnsToken!, d.apnsEnv === 'production' ? 'production' : 'sandbox', {
-      title,
-      body,
-      data: {
-        type: 'FEEDBACK_REPLY',
-        messageId,
-        feedbackId,
-        landing: { type: 'DEEPLINK', payload: { route: '/profile/feedback', params: { feedbackId } } },
-      },
-    }),
-  ))
+async function sendFeedbackReplyPush(userId: number, feedbackId: number, resolutionNote: string, event: any) {
+  const adminId = (event.context.adminUser as any)?.id ?? null
+  const values = buildFeedbackReplyTaskValues({ userId, feedbackId, resolutionNote, adminId, now: Date.now() })
+  const [res] = await db.insert(pushTask).values(values as any)
+  const taskId = (res as any)?.insertId as number
+  if (!Number.isInteger(taskId)) throw new Error('创建反馈回复 push_task 未返回 id')
+  await executePushTask(taskId)
 }
