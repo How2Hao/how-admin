@@ -388,7 +388,7 @@ onMounted(fetchTasks)
             </div>
 
             <div v-if="form.audienceType === 'USER_IDS'" class="audience-area">
-              <UserPicker v-model="form.audienceUserIds" only-pushable />
+              <UserPicker v-model="form.audienceUserIds" />
             </div>
 
             <div v-if="form.audienceType === 'ALL'" class="all-warning">

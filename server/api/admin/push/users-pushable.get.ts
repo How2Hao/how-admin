@@ -1,31 +1,32 @@
-import { and, desc, eq, isNotNull, sql } from 'drizzle-orm'
+import { sql } from 'drizzle-orm'
 import { defineHandler } from 'nitro'
 import { db } from '~~/db'
-import { deviceTokens, users } from '../../../../drizzle/schema'
 
 /**
- * 列出"有 active iOS device"的用户清单
- * 给推送任务的"指定用户"选择 / 标签管理的"加用户"用
+ * 列出全部用户（给推送任务「指定用户」/ 标签「加用户」选择用）。
+ * 附 hasActiveDevice：是否有活跃 iOS 设备（能否额外收到横幅）；inbox 对所有人必达，故不按设备过滤。
  */
 export default defineHandler(async () => {
-  const rows = await db
-    .selectDistinct({
-      userId: deviceTokens.userId,
-      username: users.username,
-      uid6: users.uid6,
-      phone: users.phone,
-      lastActiveAt: sql<number>`MAX(${deviceTokens.lastActiveAt})`,
-    })
-    .from(deviceTokens)
-    .leftJoin(users, eq(users.id, deviceTokens.userId))
-    .where(and(
-      eq(deviceTokens.isActive, 1),
-      eq(deviceTokens.platform, 'IOS'),
-      isNotNull(deviceTokens.apnsToken),
-    ))
-    .groupBy(deviceTokens.userId, users.username, users.uid6, users.phone)
-    .orderBy(desc(sql`MAX(${deviceTokens.lastActiveAt})`))
-    .limit(1000)
-
-  return { list: rows, total: rows.length }
+  const raw = await db.execute(sql`
+    SELECT
+      u.id AS userId,
+      u.username AS username,
+      u.uid6 AS uid6,
+      u.phone AS phone,
+      MAX(CASE WHEN dt.is_active = 1 AND dt.platform = 'IOS' AND dt.apns_token IS NOT NULL THEN 1 ELSE 0 END) AS hasActiveDevice
+    FROM users u
+    LEFT JOIN device_tokens dt ON dt.user_id = u.id
+    GROUP BY u.id, u.username, u.uid6, u.phone
+    ORDER BY hasActiveDevice DESC, u.last_login_at DESC
+    LIMIT 1000
+  `)
+  const rows = (Array.isArray(raw) && Array.isArray((raw as any)[0]) ? (raw as any)[0] : raw) as any[]
+  const list = rows.map(r => ({
+    userId: Number(r.userId),
+    username: r.username ?? null,
+    uid6: r.uid6 ?? null,
+    phone: r.phone ?? null,
+    hasActiveDevice: Number(r.hasActiveDevice) === 1,
+  }))
+  return { list, total: list.length }
 })

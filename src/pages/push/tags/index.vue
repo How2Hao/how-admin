@@ -410,7 +410,7 @@ onMounted(fetchTags)
       @update:visible="(v) => addUserOpen = v"
       @confirm="handleAddUsers"
     >
-      <UserPicker v-model="userIdsToAdd" only-pushable />
+      <UserPicker v-model="userIdsToAdd" />
     </t-dialog>
   </div>
 </template>
