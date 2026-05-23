@@ -13,6 +13,8 @@ export default defineHandler(async () => {
       logo: bank.logo,
       pinyinIndex: bank.pinyinIndex,
       isVisible: bank.isVisible,
+      bankType: bank.bankType,
+      isHot: bank.isHot,
     })
     .from(bank)
     .orderBy(asc(bank.pinyinIndex), asc(bank.id))

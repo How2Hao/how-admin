@@ -5,6 +5,7 @@ import { requestJson } from '@/composables/useJsonRequest'
 import BankSidebar from './components/BankSidebar.vue'
 import CardGrid from './components/CardGrid.vue'
 import CardEditDialog from './components/CardEditDialog.vue'
+import CardCreateDialog from './components/CardCreateDialog.vue'
 import type { CardItemData } from './components/CardItem.vue'
 
 interface BankGroup {
@@ -37,6 +38,7 @@ const optionsRef = ref<OptionsResp>({ banks: [], cardOrganizations: [], cardLeve
 
 const editingOpen = ref(false)
 const editingId = ref<number | null>(null)
+const creatingOpen = ref(false)
 
 const selectedBank = computed(() =>
   groups.value.find(g => g.bankId === selectedBankId.value),
@@ -126,8 +128,18 @@ function handleEdit(id: number) {
 
 async function handleSaved() {
   editingOpen.value = false
-  // 重新拉当前银行卡片以同步编辑结果
-  await loadCards()
+  // dataSource 可能被改 → 同时刷新左侧分组的来源计数和列表
+  await Promise.all([loadGroups(), loadCards()])
+}
+
+function handleOpenCreate() {
+  creatingOpen.value = true
+}
+
+async function handleCreated() {
+  creatingOpen.value = false
+  // 新增的 dataSource='self' 会进入 self 来源；左侧分组计数 + 当前列表都需刷新
+  await Promise.all([loadGroups(), loadCards()])
 }
 
 // ==== effects ====
@@ -162,6 +174,7 @@ watch(keyword, () => {
       :loading="loading"
       @toggle="handleToggle"
       @edit="handleEdit"
+      @create="handleOpenCreate"
     />
     <CardEditDialog
       :visible="editingOpen"
@@ -169,6 +182,13 @@ watch(keyword, () => {
       :options="optionsRef"
       @update:visible="(v) => editingOpen = v"
       @saved="handleSaved"
+    />
+    <CardCreateDialog
+      :visible="creatingOpen"
+      :options="optionsRef"
+      :default-bank-id="selectedBankId"
+      @update:visible="(v) => creatingOpen = v"
+      @created="handleCreated"
     />
   </div>
 </template>

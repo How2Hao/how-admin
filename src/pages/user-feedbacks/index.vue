@@ -38,6 +38,7 @@ interface FeedbackRow {
   uid6: string | null
   avatar: string | null
   phone: string | null
+  lastLoginAt: number | null
 }
 
 function summarizeContext(ctx: FeedbackContext | null): string {
@@ -91,7 +92,7 @@ const previewImage = ref<string | null>(null)
 
 const columns = [
   { colKey: 'id', title: 'ID', width: 70 },
-  { colKey: 'user', title: '用户', width: 200 },
+  { colKey: 'user', title: '用户', width: 260 },
   { colKey: 'type', title: '类型', width: 100 },
   { colKey: 'content', title: '反馈内容', minWidth: 240 },
   { colKey: 'images', title: '附图', width: 180 },
@@ -145,6 +146,7 @@ const TYPE_LABEL: Record<string, string> = {
   bug: '问题反馈',
   suggestion: '建议',
   feature: '功能请求',
+  card_face: '卡面反馈',
   other: '其他',
 }
 
@@ -157,6 +159,7 @@ function typeTheme(type: string): 'default' | 'primary' | 'warning' | 'danger' |
     case 'bug': return 'danger'
     case 'suggestion': return 'primary'
     case 'feature': return 'success'
+    case 'card_face': return 'warning'
     default: return 'default'
   }
 }
@@ -170,6 +173,25 @@ function formatDateTime(value: string | null) {
   const pad = (n: number) => String(n).padStart(2, '0')
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
 }
+
+/** unix ms 时间戳格式化为 yyyy-MM-dd HH:mm */
+function formatTsShort(ts: number | null): string {
+  if (!ts) return '-'
+  const d = new Date(ts)
+  if (Number.isNaN(d.getTime())) return '-'
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
+/** 距今天数；为负或未登录返回 null */
+function daysSince(ts: number | null): number | null {
+  if (!ts || ts <= 0) return null
+  const diff = Date.now() - ts
+  if (diff < 0) return null
+  return Math.floor(diff / 86_400_000)
+}
+
+const STALE_DAYS = 7
 
 async function fetchTypes() {
   try {
@@ -369,13 +391,33 @@ watch(() => editForm.value.status, (next) => {
         @page-change="handlePageChange"
       >
         <template #user="{ row }">
-          <div class="flex gap-2 items-center text-left">
+          <div class="flex gap-2 items-start text-left">
             <t-avatar v-if="row.avatar" :image="row.avatar" size="small" />
             <t-avatar v-else size="small">{{ (row.username || '?').slice(0, 1) }}</t-avatar>
-            <div class="min-w-0">
+            <div class="min-w-0 flex-1">
               <div class="text-sm truncate">{{ row.username || '未知' }}</div>
               <div class="text-xs text-gray-500">
-                #{{ row.uid6 || row.userId }}{{ row.phone ? ` · ${row.phone}` : '' }}
+                <span v-if="row.uid6">#{{ row.uid6 }} · </span>ID:{{ row.userId }}{{ row.phone ? ` · ${row.phone}` : '' }}
+              </div>
+              <div class="text-xs mt-0.5 flex items-center gap-1 flex-wrap">
+                <span class="text-gray-400">最近登录</span>
+                <span class="text-gray-600">{{ formatTsShort(row.lastLoginAt) }}</span>
+                <t-tag
+                  v-if="daysSince(row.lastLoginAt) !== null && daysSince(row.lastLoginAt)! >= STALE_DAYS"
+                  theme="warning"
+                  variant="light"
+                  size="small"
+                >
+                  {{ daysSince(row.lastLoginAt) }} 天未登录
+                </t-tag>
+                <t-tag
+                  v-else-if="!row.lastLoginAt"
+                  theme="default"
+                  variant="light"
+                  size="small"
+                >
+                  从未登录
+                </t-tag>
               </div>
             </div>
           </div>

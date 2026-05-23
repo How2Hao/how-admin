@@ -1,8 +1,9 @@
-import { eq } from 'drizzle-orm'
+import { and, eq, isNotNull } from 'drizzle-orm'
 import { createError, readBody } from 'h3'
 import { defineHandler } from 'nitro'
 import { db } from '~~/db'
-import { userFeedback } from '../../../drizzle/schema'
+import { sendPushToDevice } from '~~/utils/apnsClient'
+import { deviceTokens, notificationMessage, notificationUserInbox, userFeedback } from '../../../drizzle/schema'
 
 const STATUSES = ['OPEN', 'IN_PROGRESS', 'RESOLVED', 'WONT_FIX'] as const
 const RESOLUTION_TYPES = ['NONE', 'NO_UPDATE', 'NEEDS_UPDATE'] as const
@@ -49,7 +50,7 @@ export default defineHandler(async (event) => {
     : null
 
   const [existing] = await db
-    .select({ id: userFeedback.id })
+    .select({ id: userFeedback.id, userId: userFeedback.userId, prevStatus: userFeedback.status })
     .from(userFeedback)
     .where(eq(userFeedback.id, id))
     .limit(1)
@@ -58,8 +59,6 @@ export default defineHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: '反馈不存在' })
   }
 
-  // RESOLVED / WONT_FIX 视为终态，自动落 resolved_at；
-  // 状态改回 OPEN/IN_PROGRESS 时清空 resolved_at（让"重新打开 issue"可被时间戳反映）
   const isTerminal = status === 'RESOLVED' || status === 'WONT_FIX'
   const resolvedAt = isTerminal ? Date.now() : null
 
@@ -74,5 +73,78 @@ export default defineHandler(async (event) => {
     })
     .where(eq(userFeedback.id, id))
 
+  // 反馈被回复时通知用户（仅当 状态变为 RESOLVED + 有 resolutionNote + 之前不是 RESOLVED）
+  if (
+    status === 'RESOLVED'
+    && resolutionNote
+    && existing.prevStatus !== 'RESOLVED'
+    && existing.userId
+  ) {
+    try {
+      await notifyFeedbackResolved(existing.userId, id, resolutionNote)
+    }
+    catch (e: any) {
+      console.error('[feedback resolve push] failed:', e?.message ?? e)
+      // 不阻塞主流程
+    }
+  }
+
   return { id, success: true }
 })
+
+/**
+ * 反馈被回复时：写 inbox + 给该用户所有 active iOS 设备推送
+ * 复用 audienceResolver 思路，简化版（仅 1 个用户）
+ */
+async function notifyFeedbackResolved(userId: number, feedbackId: number, resolutionNote: string) {
+  const now = Date.now()
+  const title = '管理员已回复你的反馈'
+  const body = resolutionNote.slice(0, 200)
+
+  // 1) 写 notification_message
+  const [insertedMsg] = await db.insert(notificationMessage).values({
+    type: 'FEEDBACK_REPLY',
+    title,
+    body,
+    imageUrl: null,
+    landingType: 'DEEPLINK',
+    landingPayload: { route: '/profile/feedback', params: { feedbackId } } as any,
+    sourcePushTaskId: null,
+    targetUserId: userId,
+    createdAt: now,
+  } as any)
+  const messageId = (insertedMsg as any)?.insertId as number
+
+  // 2) 写 notification_user_inbox
+  await db.insert(notificationUserInbox).values({
+    userId,
+    messageId,
+    readAt: null,
+    archivedAt: null,
+    createdAt: now,
+  } as any)
+
+  // 3) 给该用户所有 active iOS 设备发 APNs
+  const devices = await db.select({
+    apnsToken: deviceTokens.apnsToken,
+    apnsEnv: deviceTokens.apnsEnv,
+  }).from(deviceTokens).where(and(
+    eq(deviceTokens.userId, userId),
+    eq(deviceTokens.isActive, 1),
+    eq(deviceTokens.platform, 'IOS'),
+    isNotNull(deviceTokens.apnsToken),
+  ))
+
+  await Promise.all(devices.map(d =>
+    sendPushToDevice(d.apnsToken!, d.apnsEnv === 'production' ? 'production' : 'sandbox', {
+      title,
+      body,
+      data: {
+        type: 'FEEDBACK_REPLY',
+        messageId,
+        feedbackId,
+        landing: { type: 'DEEPLINK', payload: { route: '/profile/feedback', params: { feedbackId } } },
+      },
+    }),
+  ))
+}

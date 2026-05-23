@@ -72,24 +72,21 @@ async function handleLogout() {
               <span>银行卡活动</span>
             </template>
             <t-menu-item value="/bank-card-activities/wechat" to="/bank-card-activities/wechat">
-              <template #icon>
-                <div i-carbon:logo-wechat mr-2 />
-              </template>
               公众号管理
             </t-menu-item>
             <t-menu-item value="/bank-card-activities/web" to="/bank-card-activities/web">
-              <template #icon>
-                <div i-lucide:app-window mr-2 />
-              </template>
               模板解析
             </t-menu-item>
             <t-menu-item value="/bank-card-activities/edit" to="/bank-card-activities/edit">
-              <template #icon>
-                <div i-carbon:edit mr-2 />
-              </template>
               模板管理
             </t-menu-item>
           </t-submenu>
+          <t-menu-item value="/coverage-gap" to="/coverage-gap">
+            <template #icon>
+              <div i-carbon:radar mr-3 />
+            </template>
+            活动覆盖率
+          </t-menu-item>
           <t-submenu value="/card-templates">
             <template #icon>
               <div i-carbon:purchase mr-3 />
@@ -98,15 +95,9 @@ async function handleLogout() {
               <span>卡片模板管理</span>
             </template>
             <t-menu-item value="/card-templates/credit" to="/card-templates/credit">
-              <template #icon>
-                <div i-carbon:credit-card mr-2 />
-              </template>
               信用卡管理
             </t-menu-item>
             <t-menu-item value="/card-templates/debit" to="/card-templates/debit">
-              <template #icon>
-                <div i-carbon:money mr-2 />
-              </template>
               借记卡管理
             </t-menu-item>
           </t-submenu>
@@ -124,7 +115,7 @@ async function handleLogout() {
           </t-menu-item>
           <t-menu-item value="/banks" to="/banks">
             <template #icon>
-              <div i-carbon:bank mr-3 />
+              <div i-lucide:landmark mr-3 />
             </template>
             银行管理
           </t-menu-item>
@@ -133,6 +124,12 @@ async function handleLogout() {
               <div i-carbon:category mr-3 />
             </template>
             活动分类
+          </t-menu-item>
+          <t-menu-item value="/plaza-custom-tabs" to="/plaza-custom-tabs">
+            <template #icon>
+              <div i-lucide:layout-grid mr-3 />
+            </template>
+            广场运营 Tab
           </t-menu-item>
           <t-menu-item value="/coupon-categories" to="/coupon-categories">
             <template #icon>
@@ -148,9 +145,6 @@ async function handleLogout() {
               <span>用户管理</span>
             </template>
             <t-menu-item value="/users/cards" to="/users/cards">
-              <template #icon>
-                <div i-carbon:credit-card mr-2 />
-              </template>
               卡片管理
             </t-menu-item>
           </t-submenu>
@@ -159,6 +153,26 @@ async function handleLogout() {
               <div i-carbon:chat mr-3 />
             </template>
             用户反馈
+          </t-menu-item>
+          <t-submenu value="/push">
+            <template #icon>
+              <div i-carbon:notification mr-3 />
+            </template>
+            <template #title>
+              <span>推送中心</span>
+            </template>
+            <t-menu-item value="/push/tasks" to="/push/tasks">
+              推送任务
+            </t-menu-item>
+            <t-menu-item value="/push/tags" to="/push/tags">
+              用户标签
+            </t-menu-item>
+          </t-submenu>
+          <t-menu-item value="/app-versions" to="/app-versions">
+            <template #icon>
+              <div i-carbon:version mr-3 />
+            </template>
+            App 版本管理
           </t-menu-item>
         </t-menu>
       </t-aside>

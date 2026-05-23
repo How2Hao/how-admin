@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm'
-import { bigint, char, datetime, decimal, double, index, int, json, mysqlEnum, mysqlTable, primaryKey, smallint, text, tinyint, unique, varchar } from 'drizzle-orm/mysql-core'
+import { bigint, char, datetime, decimal, double, index, int, json, mediumtext, mysqlEnum, mysqlTable, primaryKey, smallint, text, tinyint, unique, varchar } from 'drizzle-orm/mysql-core'
 
 export const accCategories = mysqlTable('acc_categories', {
   id: int().autoincrement().notNull(),
@@ -148,6 +148,8 @@ export const bank = mysqlTable('bank', {
   source: varchar({ length: 255 }),
   isUnifiedBill: tinyint('is_unified_bill').default(0).notNull(),
   isVisible: tinyint('is_visible').default(1).notNull(),
+  bankType: varchar('bank_type', { length: 32 }),
+  isHot: tinyint('is_hot').default(0).notNull(),
 }, table => [
   primaryKey({ columns: [table.id], name: 'bank_id' }),
 ])
@@ -195,12 +197,6 @@ export const bankCardTemplate = mysqlTable('bank_card_template', {
   tags: varchar({ length: 1024 }),
   dataSource: varchar('data_source', { length: 50 }).default('51credit').notNull(),
   relatedCount: int('related_count').default(0).notNull(),
-  provinceCode: varchar('province_code', { length: 20 }),
-  provinceName: varchar('province_name', { length: 50 }),
-  cityCode: varchar('city_code', { length: 20 }),
-  cityName: varchar('city_name', { length: 50 }),
-  cardLastFour: varchar('card_last_four', { length: 10 }),
-  creditLimit: double('credit_limit'),
   annualFeeType: varchar('annual_fee_type', { length: 20 }),
   rigidFeeAmount: double('rigid_fee_amount'),
   waiverMethod: varchar('waiver_method', { length: 30 }),
@@ -517,9 +513,28 @@ export const appRelease = mysqlTable('app_release', {
   isMandatory: tinyint('is_mandatory').default(0).notNull(),
   publishedAt: bigint('published_at', { mode: 'number' }).notNull(),
   createdAt: bigint('created_at', { mode: 'number' }).notNull(),
+  article: mediumtext('article'),
+  articleTitle: varchar('article_title', { length: 200 }),
 }, table => [
   unique('app_release_version').on(table.version),
   primaryKey({ columns: [table.id], name: 'app_release_id' }),
+])
+
+// 草稿箱：仅 how-admin 读写，ha/hi 不感知。发布时把内容写入 app_release。
+export const appReleaseDraft = mysqlTable('app_release_draft', {
+  id: int().autoincrement().notNull(),
+  version: varchar({ length: 32 }).notNull(),
+  changelog: text().notNull(),
+  androidUrl: varchar('android_url', { length: 500 }),
+  iosUrl: varchar('ios_url', { length: 500 }),
+  isMandatory: tinyint('is_mandatory').default(0).notNull(),
+  publishedAt: bigint('published_at', { mode: 'number' }).notNull(),
+  article: mediumtext('article'),
+  articleTitle: varchar('article_title', { length: 200 }),
+  createdAt: bigint('created_at', { mode: 'number' }).notNull(),
+  updatedAt: bigint('updated_at', { mode: 'number' }).notNull(),
+}, table => [
+  primaryKey({ columns: [table.id], name: 'app_release_draft_id' }),
 ])
 
 export const userFeedback = mysqlTable('user_feedback', {
@@ -576,4 +591,173 @@ export const adminSession = mysqlTable('admin_session', {
   primaryKey({ columns: [table.id], name: 'admin_session_id' }),
   unique('admin_session_token').on(table.token),
   index('idx_admin_session_admin_user').on(table.adminUserId),
+])
+
+export const deviceTokens = mysqlTable('device_tokens', {
+  id: bigint({ mode: 'number' }).autoincrement().notNull(),
+  userId: int('user_id').notNull(),
+  platform: varchar({ length: 16 }).notNull(),
+  apnsToken: varchar('apns_token', { length: 255 }),
+  apnsEnv: varchar('apns_env', { length: 16 }),
+  deviceId: varchar('device_id', { length: 100 }).notNull(),
+  appVersion: varchar('app_version', { length: 20 }),
+  osVersion: varchar('os_version', { length: 20 }),
+  isActive: tinyint('is_active').default(1).notNull(),
+  lastActiveAt: bigint('last_active_at', { mode: 'number' }).notNull(),
+  createdAt: bigint('created_at', { mode: 'number' }).notNull(),
+  updatedAt: bigint('updated_at', { mode: 'number' }).notNull(),
+}, table => [
+  primaryKey({ columns: [table.id], name: 'device_tokens_id' }),
+  unique('uk_user_device').on(table.userId, table.deviceId),
+])
+
+// ─── 推送任务（admin 创建的推送行为元数据 + 缓存统计） ───
+export const pushTask = mysqlTable('push_task', {
+  id: bigint({ mode: 'number' }).autoincrement().notNull(),
+  name: varchar({ length: 100 }).notNull(),
+  status: varchar({ length: 20 }).default('DRAFT').notNull(),
+  triggerSource: varchar('trigger_source', { length: 20 }).default('ADMIN').notNull(),
+  // ACTIVITY / ANNOUNCEMENT / FEEDBACK_REPLY / SYSTEM — 决定走用户哪个子开关
+  type: varchar({ length: 40 }).default('ACTIVITY').notNull(),
+
+  audienceType: varchar('audience_type', { length: 20 }).notNull(),
+  audienceUserIds: json('audience_user_ids'),
+  audienceTagIds: json('audience_tag_ids'),
+  audienceTagOp: varchar('audience_tag_op', { length: 8 }),
+  audienceSnapshotCount: int('audience_snapshot_count'),
+
+  title: varchar({ length: 200 }).notNull(),
+  body: varchar({ length: 2000 }).notNull(),
+  imageUrl: varchar('image_url', { length: 500 }),
+  landingType: varchar('landing_type', { length: 20 }).default('NONE').notNull(),
+  landingPayload: json('landing_payload'),
+
+  scheduledAt: bigint('scheduled_at', { mode: 'number' }),
+  sentStartedAt: bigint('sent_started_at', { mode: 'number' }),
+  sentFinishedAt: bigint('sent_finished_at', { mode: 'number' }),
+
+  statsTotal: int('stats_total').default(0).notNull(),
+  statsInboxWritten: int('stats_inbox_written').default(0).notNull(),
+  statsSent: int('stats_sent').default(0).notNull(),
+  statsFailed: int('stats_failed').default(0).notNull(),
+  statsOpened: int('stats_opened').default(0).notNull(),
+  // 类型订阅关闭被过滤的人数（既不写 inbox 也不推 APNs）
+  statsFilteredByType: int('stats_filtered_by_type').default(0).notNull(),
+  // 总开关关闭：写 inbox 但不推 APNs 的人数
+  statsFilteredByMaster: int('stats_filtered_by_master').default(0).notNull(),
+
+  createdByAdminId: int('created_by_admin_id'),
+  createdAt: bigint('created_at', { mode: 'number' }).notNull(),
+  updatedAt: bigint('updated_at', { mode: 'number' }).notNull(),
+}, table => [
+  primaryKey({ columns: [table.id], name: 'push_task_id' }),
+])
+
+// push_send 表已并入 notification_user_inbox（delivery_* 字段）
+
+// ─── 标签（纯元数据壳，离线 user_id 名单的容器）───
+export const pushTag = mysqlTable('push_tag', {
+  id: int().autoincrement().notNull(),
+  code: varchar({ length: 60 }).notNull(),
+  name: varchar({ length: 100 }).notNull(),
+  description: varchar({ length: 500 }),
+  // 缓存的成员数（每次导入完更新）
+  userCount: int('user_count').default(0).notNull(),
+  createdByAdminId: int('created_by_admin_id'),
+  createdAt: bigint('created_at', { mode: 'number' }).notNull(),
+  updatedAt: bigint('updated_at', { mode: 'number' }).notNull(),
+}, table => [
+  primaryKey({ columns: [table.id], name: 'push_tag_id' }),
+  unique('uk_code').on(table.code),
+])
+
+// ─── 用户 ↔ 标签 N:N（离线导入的数据）───
+export const pushUserTag = mysqlTable('push_user_tag', {
+  id: bigint({ mode: 'number' }).autoincrement().notNull(),
+  userId: int('user_id').notNull(),
+  tagId: int('tag_id').notNull(),
+  createdAt: bigint('created_at', { mode: 'number' }).notNull(),
+}, table => [
+  primaryKey({ columns: [table.id], name: 'push_user_tag_id' }),
+  unique('uk_user_tag').on(table.userId, table.tagId),
+  index('idx_user').on(table.userId),
+])
+
+// ─── 消息内容（去重存储） ───
+export const notificationMessage = mysqlTable('notification_message', {
+  id: bigint({ mode: 'number' }).autoincrement().notNull(),
+  // ACTIVITY / ANNOUNCEMENT / FEEDBACK_REPLY / SYSTEM
+  type: varchar({ length: 40 }).notNull(),
+  title: varchar({ length: 200 }).notNull(),
+  body: varchar({ length: 2000 }).notNull(),
+  imageUrl: varchar('image_url', { length: 500 }),
+  landingType: varchar('landing_type', { length: 20 }).default('NONE').notNull(),
+  landingPayload: json('landing_payload'),
+  // admin push_task 触发的消息会填这里；系统事件（反馈回复等）为 null
+  sourcePushTaskId: bigint('source_push_task_id', { mode: 'number' }),
+  // 仅个性化消息使用（反馈回复指向单个用户）；广播为 null
+  targetUserId: int('target_user_id'),
+  createdAt: bigint('created_at', { mode: 'number' }).notNull(),
+}, table => [
+  primaryKey({ columns: [table.id], name: 'notification_message_id' }),
+])
+
+// ─── 用户 × 消息：投递 + 阅读 一体（吸收了原 push_send） ───
+export const notificationUserInbox = mysqlTable('notification_user_inbox', {
+  id: bigint({ mode: 'number' }).autoincrement().notNull(),
+  userId: int('user_id').notNull(),
+  messageId: bigint('message_id', { mode: 'number' }).notNull(),
+
+  // 投递（admin 写入）
+  // APNS: 走 APNs；INBOX_ONLY: 用户关了总开关或无活跃 token
+  deliveryChannel: varchar('delivery_channel', { length: 20 }),
+  // PENDING / SENT / FAILED。INBOX_ONLY 视为 SENT
+  deliveryStatus: varchar('delivery_status', { length: 20 }),
+  deliveryErrorCode: varchar('delivery_error_code', { length: 50 }),
+  deliveryErrorReason: varchar('delivery_error_reason', { length: 255 }),
+  deliveryAttemptedAt: bigint('delivery_attempted_at', { mode: 'number' }),
+  deliverySentAt: bigint('delivery_sent_at', { mode: 'number' }),
+
+  // 阅读
+  readAt: bigint('read_at', { mode: 'number' }),
+  // PUSH_TAP: 用户点 push；INBOX_TAP: app 内点 inbox 项
+  openedVia: varchar('opened_via', { length: 20 }),
+  archivedAt: bigint('archived_at', { mode: 'number' }),
+  createdAt: bigint('created_at', { mode: 'number' }).notNull(),
+}, table => [
+  primaryKey({ columns: [table.id], name: 'notification_user_inbox_id' }),
+  unique('uk_user_message').on(table.userId, table.messageId),
+  index('idx_inbox_message_delivery').on(table.messageId, table.deliveryStatus),
+])
+
+// ─── 用户设置（由 hi 维护，admin 仅读取 settings_json.notification 做推送过滤） ───
+export const userSettings = mysqlTable('user_settings', {
+  id: int().autoincrement().notNull(),
+  userId: int('user_id').notNull(),
+  schemaVersion: tinyint('schema_version').default(1).notNull(),
+  settingsJson: json('settings_json').notNull(),
+  createdAt: bigint('created_at', { mode: 'number' }).notNull(),
+  updatedAt: bigint('updated_at', { mode: 'number' }).notNull(),
+}, table => [
+  primaryKey({ columns: [table.id], name: 'user_settings_id' }),
+  unique('uniq_user_settings_user_id').on(table.userId),
+])
+
+// ─── 广场自定义运营 Tab（admin 配置；C 端按 is_visible=1 过滤）───
+export const plazaCustomTab = mysqlTable('plaza_custom_tab', {
+  id: int().autoincrement().notNull(),
+  code: varchar({ length: 32 }).notNull(),
+  name: varchar({ length: 20 }).notNull(),
+  logo: varchar({ length: 255 }),
+  templateIds: json('template_ids').$type<number[]>().notNull(),
+  sortOrder: int('sort_order').default(0).notNull(),
+  isVisible: tinyint('is_visible').default(1).notNull(),
+  startTime: bigint('start_time', { mode: 'number' }),
+  endTime: bigint('end_time', { mode: 'number' }),
+  createdAt: bigint('created_at', { mode: 'number' }).notNull(),
+  updatedAt: bigint('updated_at', { mode: 'number' }).notNull(),
+}, table => [
+  primaryKey({ columns: [table.id], name: 'plaza_custom_tab_id' }),
+  unique('uniq_plaza_custom_tab_code').on(table.code),
+  index('idx_plaza_custom_tab_visible_sort').on(table.isVisible, table.sortOrder),
 ])

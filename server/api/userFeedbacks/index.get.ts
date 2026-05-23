@@ -39,6 +39,7 @@ export default defineHandler(async (event) => {
       uid6: users.uid6,
       avatar: users.avatar,
       phone: users.phone,
+      lastLoginAt: users.lastLoginAt,
     })
     .from(userFeedback)
     .leftJoin(users, eq(userFeedback.userId, users.id))

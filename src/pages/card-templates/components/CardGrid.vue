@@ -13,6 +13,7 @@ const emit = defineEmits<{
   (e: 'update:keyword', v: string): void
   (e: 'toggle', id: number, next: 0 | 1): void
   (e: 'edit', id: number): void
+  (e: 'create'): void
 }>()
 </script>
 
@@ -30,6 +31,14 @@ const emit = defineEmits<{
           style="width: 200px"
           @update:model-value="(v: string) => emit('update:keyword', v)"
         />
+        <t-button
+          theme="primary"
+          size="small"
+          style="margin-left: 8px"
+          @click="emit('create')"
+        >
+          新增卡片
+        </t-button>
       </div>
     </header>
     <div class="body">

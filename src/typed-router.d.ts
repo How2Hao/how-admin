@@ -48,6 +48,13 @@ declare module 'vue-router/auto-routes' {
       Record<never, never>,
       | never
     >,
+    '/app-versions/': RouteRecordInfo<
+      '/app-versions/',
+      '/app-versions',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
     '/bank-card-activities/edit/': RouteRecordInfo<
       '/bank-card-activities/edit/',
       '/bank-card-activities/edit',
@@ -76,6 +83,13 @@ declare module 'vue-router/auto-routes' {
       Record<never, never>,
       | never
     >,
+    '/banks/CreateBankDialog': RouteRecordInfo<
+      '/banks/CreateBankDialog',
+      '/banks/CreateBankDialog',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
     '/benefit-pay-platforms/': RouteRecordInfo<
       '/benefit-pay-platforms/',
       '/benefit-pay-platforms',
@@ -100,6 +114,13 @@ declare module 'vue-router/auto-routes' {
     '/card-templates/components/BankSidebar': RouteRecordInfo<
       '/card-templates/components/BankSidebar',
       '/card-templates/components/BankSidebar',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
+    '/card-templates/components/CardCreateDialog': RouteRecordInfo<
+      '/card-templates/components/CardCreateDialog',
+      '/card-templates/components/CardCreateDialog',
       Record<never, never>,
       Record<never, never>,
       | never
@@ -146,11 +167,46 @@ declare module 'vue-router/auto-routes' {
       Record<never, never>,
       | never
     >,
+    '/coverage-gap/': RouteRecordInfo<
+      '/coverage-gap/',
+      '/coverage-gap',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
     '/login': RouteRecordInfo<
       '/login',
       '/login',
       Record<never, never>,
       Record<never, never>,
+      | never
+    >,
+    '/plaza-custom-tabs/': RouteRecordInfo<
+      '/plaza-custom-tabs/',
+      '/plaza-custom-tabs',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
+    '/push/tags/': RouteRecordInfo<
+      '/push/tags/',
+      '/push/tags',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
+    '/push/tasks/': RouteRecordInfo<
+      '/push/tasks/',
+      '/push/tasks',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
+    '/push/tasks/[id]/': RouteRecordInfo<
+      '/push/tasks/[id]/',
+      '/push/tasks/:id',
+      { id: ParamValue<true> },
+      { id: ParamValue<false> },
       | never
     >,
     '/usage-platforms/': RouteRecordInfo<
@@ -205,6 +261,12 @@ declare module 'vue-router/auto-routes' {
       views:
         | never
     }
+    'src/pages/app-versions/index.vue': {
+      routes:
+        | '/app-versions/'
+      views:
+        | never
+    }
     'src/pages/bank-card-activities/edit/index.vue': {
       routes:
         | '/bank-card-activities/edit/'
@@ -229,6 +291,12 @@ declare module 'vue-router/auto-routes' {
       views:
         | never
     }
+    'src/pages/banks/CreateBankDialog.vue': {
+      routes:
+        | '/banks/CreateBankDialog'
+      views:
+        | never
+    }
     'src/pages/benefit-pay-platforms/index.vue': {
       routes:
         | '/benefit-pay-platforms/'
@@ -250,6 +318,12 @@ declare module 'vue-router/auto-routes' {
     'src/pages/card-templates/components/BankSidebar.vue': {
       routes:
         | '/card-templates/components/BankSidebar'
+      views:
+        | never
+    }
+    'src/pages/card-templates/components/CardCreateDialog.vue': {
+      routes:
+        | '/card-templates/components/CardCreateDialog'
       views:
         | never
     }
@@ -289,9 +363,39 @@ declare module 'vue-router/auto-routes' {
       views:
         | never
     }
+    'src/pages/coverage-gap/index.vue': {
+      routes:
+        | '/coverage-gap/'
+      views:
+        | never
+    }
     'src/pages/login.vue': {
       routes:
         | '/login'
+      views:
+        | never
+    }
+    'src/pages/plaza-custom-tabs/index.vue': {
+      routes:
+        | '/plaza-custom-tabs/'
+      views:
+        | never
+    }
+    'src/pages/push/tags/index.vue': {
+      routes:
+        | '/push/tags/'
+      views:
+        | never
+    }
+    'src/pages/push/tasks/index.vue': {
+      routes:
+        | '/push/tasks/'
+      views:
+        | never
+    }
+    'src/pages/push/tasks/[id]/index.vue': {
+      routes:
+        | '/push/tasks/[id]/'
       views:
         | never
     }
