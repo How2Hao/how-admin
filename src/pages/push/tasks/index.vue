@@ -19,6 +19,7 @@ interface PushTaskRow {
   status: string
   triggerSource: string
   type: PushType
+  deliveryMode: 'APNS' | 'INBOX'
   audienceType: AudienceType
   audienceUserIds: number[] | null
   audienceTagIds: number[] | null
@@ -43,6 +44,7 @@ interface PushTaskRow {
 interface Form {
   name: string
   type: PushType
+  deliveryMode: 'APNS' | 'INBOX'
   audienceType: AudienceType
   audienceUserIds: number[]
   audienceTagIds: number[]
@@ -58,6 +60,7 @@ function emptyForm(): Form {
   return {
     name: '',
     type: 'ACTIVITY',
+    deliveryMode: 'APNS',
     audienceType: 'TAGS',
     audienceUserIds: [],
     audienceTagIds: [],
@@ -205,6 +208,7 @@ async function submit(action: 'send' | 'draft') {
     const payload = {
       name: form.value.name.trim(),
       type: form.value.type,
+      deliveryMode: form.value.deliveryMode,
       audienceType: form.value.audienceType,
       audienceUserIds: form.value.audienceType === 'USER_IDS' ? form.value.audienceUserIds : undefined,
       audienceTagIds: form.value.audienceType === 'TAGS' ? form.value.audienceTagIds : undefined,
@@ -323,6 +327,18 @@ onMounted(fetchTasks)
               </div>
             </t-form-item>
 
+            <t-form-item label="下发方式">
+              <t-radio-group v-model="form.deliveryMode">
+                <t-radio value="APNS">横幅 + 消息中心</t-radio>
+                <t-radio value="INBOX">仅消息中心</t-radio>
+              </t-radio-group>
+              <div style="margin-top: 4px; font-size: 12px; color: #94a3b8;">
+                {{ form.deliveryMode === 'INBOX'
+                  ? '所有人都只进消息中心，不弹横幅 / 声音（安静通知）'
+                  : '能收横幅的用户弹横幅，其余仅进消息中心' }}
+              </div>
+            </t-form-item>
+
             <t-form-item label="落地形式" required>
               <t-radio-group v-model="form.landingType">
                 <t-radio value="NONE">纯文字</t-radio>
@@ -358,7 +374,7 @@ onMounted(fetchTasks)
             <t-form-item v-if="form.landingType === 'DEEPLINK'" label="APP 内路由">
               <t-input
                 :value="(form.landingPayload as any)?.route ?? ''"
-                placeholder="例：/profile/feedback?id=123"
+                placeholder="例：/feedback"
                 @update:model-value="(v) => form.landingPayload = { type: 'route', route: String(v) }"
               />
             </t-form-item>
@@ -403,13 +419,16 @@ onMounted(fetchTasks)
             </div>
 
             <div class="preview-box">
-              <div class="preview-label">预计推送</div>
+              <div class="preview-label">预计触达</div>
               <div class="preview-stats">
                 <span class="preview-num">{{ audiencePreview?.userCount ?? '—' }}</span>
-                <span class="preview-unit">用户</span>
-                <span class="preview-sep">/</span>
-                <span class="preview-num">{{ audiencePreview?.deviceCount ?? '—' }}</span>
-                <span class="preview-unit">台设备</span>
+                <span class="preview-unit">人进消息中心</span>
+                <template v-if="form.deliveryMode === 'APNS'">
+                  <span class="preview-sep">·</span>
+                  <span class="preview-num">{{ audiencePreview?.deviceCount ?? '—' }}</span>
+                  <span class="preview-unit">人可收横幅</span>
+                </template>
+                <span v-else class="preview-unit">（仅消息中心，不发横幅）</span>
                 <t-loading v-if="previewing" size="small" style="margin-left: 6px" />
               </div>
             </div>
@@ -446,6 +465,7 @@ onMounted(fetchTasks)
               <t-tag v-if="t.landingType !== 'NONE'" theme="primary" variant="light" size="small">带跳转</t-tag>
               <t-tag v-if="t.imageUrl" theme="success" variant="light" size="small">含图</t-tag>
               <t-tag v-if="t.triggerSource === 'SYSTEM'" theme="default" variant="light" size="small">系统</t-tag>
+              <t-tag v-if="t.deliveryMode === 'INBOX'" theme="warning" variant="light" size="small">仅消息中心</t-tag>
               <span class="task-time">{{ fmtTime(t.createdAt) }}</span>
             </div>
             <div class="task-row">📋 {{ t.title }}</div>
@@ -456,11 +476,11 @@ onMounted(fetchTasks)
           <div class="task-stats">
             <div class="stat-item">
               <div class="stat-num">{{ t.statsInboxWritten }}</div>
-              <div class="stat-label">inbox</div>
+              <div class="stat-label">消息中心</div>
             </div>
             <div class="stat-item">
               <div class="stat-num">{{ t.statsSent }}</div>
-              <div class="stat-label">APNs 送</div>
+              <div class="stat-label">横幅送达</div>
             </div>
             <div class="stat-item">
               <div class="stat-num failed">{{ t.statsFailed }}</div>
