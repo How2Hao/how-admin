@@ -18,7 +18,7 @@ const APNS_CONCURRENCY = 50
  * 执行一次 push_task 的发送：
  *   1. resolveAudience 拿到候选 user_id 集合
  *   2. 批量读 user_settings.notification 做三桶分流：
- *      - 类型订阅关闭 → 不写 inbox，不发 APNs（statsFilteredByType）
+ *      - 类型订阅关闭 → 写 inbox channel=INBOX_ONLY，不发 APNs（statsFilteredByType）
  *      - 总开关关闭 → 写 inbox channel=INBOX_ONLY（statsFilteredByMaster）
  *      - 正常 → 写 inbox channel=APNS + 发 APNs
  *   3. 写 1 行 notification_message
