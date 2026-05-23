@@ -102,9 +102,8 @@ const funnel = computed(() => {
   const total = d.statsTotal || 0
   return [
     { label: '受众解析', value: total, pct: 100 },
-    { label: '通过类型订阅', value: total - d.statsFilteredByType, pct: total > 0 ? (1 - d.statsFilteredByType / total) * 100 : 0 },
-    { label: '写入 inbox', value: d.statsInboxWritten, pct: total > 0 ? (d.statsInboxWritten / total) * 100 : 0 },
-    { label: 'APNs 发送成功', value: d.statsSent, pct: total > 0 ? (d.statsSent / total) * 100 : 0 },
+    { label: '进消息中心', value: d.statsInboxWritten, pct: total > 0 ? (d.statsInboxWritten / total) * 100 : 0 },
+    { label: '横幅送达', value: d.statsSent, pct: total > 0 ? (d.statsSent / total) * 100 : 0 },
     { label: '用户打开', value: d.statsOpened, pct: total > 0 ? (d.statsOpened / total) * 100 : 0 },
   ]
 })
@@ -135,15 +134,15 @@ onMounted(load)
           </div>
           <div class="stat-card">
             <div class="stat-num">{{ detail.statsInboxWritten }}</div>
-            <div class="stat-label">inbox 写入</div>
+            <div class="stat-label">进消息中心</div>
           </div>
           <div class="stat-card">
             <div class="stat-num success">{{ detail.statsSent }}</div>
-            <div class="stat-label">APNs 送出</div>
+            <div class="stat-label">横幅送出</div>
           </div>
           <div class="stat-card">
             <div class="stat-num danger">{{ detail.statsFailed }}</div>
-            <div class="stat-label">APNs 失败</div>
+            <div class="stat-label">横幅失败</div>
           </div>
           <div class="stat-card">
             <div class="stat-num primary">{{ detail.statsOpened }}</div>
@@ -170,10 +169,10 @@ onMounted(load)
           </div>
           <div v-if="detail.statsFilteredByType > 0 || detail.statsFilteredByMaster > 0" class="filter-notes">
             <div v-if="detail.statsFilteredByType > 0">
-              · 类型订阅关闭被过滤：<b>{{ detail.statsFilteredByType }}</b> 人（未写 inbox，未推 APNs）
+              · 关闭了该类型通知：<b>{{ detail.statsFilteredByType }}</b> 人（已进消息中心，未推横幅）
             </div>
             <div v-if="detail.statsFilteredByMaster > 0">
-              · 总开关关闭：<b>{{ detail.statsFilteredByMaster }}</b> 人（已写 inbox，未推 APNs）
+              · 关闭了推送总开关：<b>{{ detail.statsFilteredByMaster }}</b> 人（已进消息中心，未推横幅）
             </div>
           </div>
         </t-card>
