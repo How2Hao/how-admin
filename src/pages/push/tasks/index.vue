@@ -89,7 +89,7 @@ const selectedTarget = computed(() => DEEPLINK_TARGETS.find(t => t.key === deepl
 
 async function loadPlazaTabs() {
   try {
-    const r = await requestJson<{ list: { code: string, name: string, isVisible: number }[] }>('/api/admin/plazaCustomTabs')
+    const r = await requestJson<{ list: { code: string, name: string, isVisible: number }[] }>('/api/plazaCustomTabs')
     plazaTabs.value = (r.list ?? []).filter(t => t.isVisible === 1).map(t => ({ code: t.code, name: t.name }))
   }
   catch {
