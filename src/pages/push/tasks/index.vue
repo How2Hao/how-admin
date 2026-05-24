@@ -5,6 +5,7 @@ import { requestJson } from '@/composables/useJsonRequest'
 import { useRouter } from 'vue-router'
 import UserPicker from '@/components/push/UserPicker.vue'
 import TagPicker from '@/components/push/TagPicker.vue'
+import { DEEPLINK_TARGETS, buildRoutePayload } from '../deeplink-targets'
 
 const router = useRouter()
 
@@ -54,7 +55,7 @@ interface Form {
   body: string
   imageUrl: string | null
   landingType: LandingType
-  landingPayload: { type: 'route', route: string } | { type: 'url', url: string } | null
+  landingPayload: { type: 'route', route: string, params?: Record<string, string> } | { type: 'url', url: string } | null
 }
 function emptyForm(): Form {
   return {
@@ -81,6 +82,44 @@ const TYPE_OPTIONS: { value: PushType, label: string, desc: string }[] = [
   { value: 'SYSTEM', label: '⚠️ 系统消息', desc: '安全提醒 / 强制更新 — 强制下发，用户开关无效' },
 ]
 const form = ref<Form>(emptyForm())
+const deeplinkTargetKey = ref('')
+const deeplinkParamCode = ref('')
+const plazaTabs = ref<{ code: string, name: string }[]>([])
+const selectedTarget = computed(() => DEEPLINK_TARGETS.find(t => t.key === deeplinkTargetKey.value) ?? null)
+
+async function loadPlazaTabs() {
+  try {
+    const r = await requestJson<{ list: { code: string, name: string, isVisible: number }[] }>('/api/admin/plazaCustomTabs')
+    plazaTabs.value = (r.list ?? []).filter(t => t.isVisible === 1).map(t => ({ code: t.code, name: t.name }))
+  }
+  catch {
+    plazaTabs.value = []
+  }
+}
+
+function rebuildDeeplinkPayload() {
+  if (form.value.landingType !== 'DEEPLINK')
+    return
+  const target = selectedTarget.value
+  form.value.landingPayload = target ? buildRoutePayload(target, deeplinkParamCode.value) : null
+}
+
+watch(deeplinkTargetKey, () => {
+  deeplinkParamCode.value = ''
+  rebuildDeeplinkPayload()
+})
+watch(deeplinkParamCode, rebuildDeeplinkPayload)
+watch(() => form.value.landingType, (t) => {
+  if (t !== 'DEEPLINK') {
+    deeplinkTargetKey.value = ''
+    deeplinkParamCode.value = ''
+  }
+  if (t === 'NONE')
+    form.value.landingPayload = null
+  if (t === 'DEEPLINK')
+    rebuildDeeplinkPayload()
+})
+
 const formCollapsed = ref(false)
 const submitting = ref(false)
 
@@ -247,6 +286,8 @@ async function submit(action: 'send' | 'draft') {
     }
 
     form.value = emptyForm()
+    deeplinkTargetKey.value = ''
+    deeplinkParamCode.value = ''
     audiencePreview.value = null
     await fetchTasks()
   }
@@ -284,12 +325,18 @@ function landingText(t: PushTaskRow) {
   if (t.landingType === 'NONE') return null
   if (t.landingType === 'DEEPLINK') {
     const p = t.landingPayload || {}
-    return `APP 内 → ${p.route || p?.payload?.route || '?'}`
+    const route = p.route || p?.payload?.route
+    const label = DEEPLINK_TARGETS.find(d => d.route === route)?.label || route || '?'
+    const code = p.params?.code
+    return `跳转 → ${label}${code ? `（${code}）` : ''}`
   }
   return `外链 → ${(t.landingPayload || {}).url || '?'}`
 }
 
-onMounted(fetchTasks)
+onMounted(() => {
+  fetchTasks()
+  loadPlazaTabs()
+})
 </script>
 
 <template>
@@ -371,11 +418,22 @@ onMounted(fetchTasks)
               </div>
             </t-form-item>
 
-            <t-form-item v-if="form.landingType === 'DEEPLINK'" label="APP 内路由">
-              <t-input
-                :value="(form.landingPayload as any)?.route ?? ''"
-                placeholder="例：/feedback"
-                @update:model-value="(v) => form.landingPayload = { type: 'route', route: String(v) }"
+            <t-form-item v-if="form.landingType === 'DEEPLINK'" label="跳转页面">
+              <t-select
+                v-model="deeplinkTargetKey"
+                placeholder="选择 APP 内页面"
+                :options="DEEPLINK_TARGETS.map(t => ({ label: t.label, value: t.key }))"
+              />
+            </t-form-item>
+            <t-form-item
+              v-if="form.landingType === 'DEEPLINK' && selectedTarget?.param?.source === 'plazaCustomTab'"
+              :label="selectedTarget?.param?.label"
+            >
+              <t-select
+                v-model="deeplinkParamCode"
+                clearable
+                placeholder="选择活动（选填，不选进默认 Tab）"
+                :options="plazaTabs.map(t => ({ label: t.name, value: t.code }))"
               />
             </t-form-item>
             <t-form-item v-if="form.landingType === 'WEB'" label="外链 URL">
