@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, like, or, type SQL } from 'drizzle-orm'
+import { and, desc, eq, inArray, like, or, sql, type SQL } from 'drizzle-orm'
 import { getQuery } from 'h3'
 import { defineHandler } from 'nitro'
 import { db } from '~~/db'
@@ -26,7 +26,8 @@ export default defineHandler(async (event) => {
   const q = getQuery(event)
   const keyword = String(q.keyword ?? '').trim()
   const idsRaw = String(q.ids ?? '').trim()
-  const limit = Math.min(100, Math.max(1, Number(q.limit ?? 50)))
+  const page = Math.max(1, Number(q.page ?? 1) || 1)
+  const pageSize = Math.min(50, Math.max(1, Number(q.pageSize ?? 20) || 20))
   const bankId = Number(q.bankId)
   const activityCategoryId = Number(q.activityCategoryId)
   const status = String(q.status ?? '').trim().toUpperCase()
@@ -49,9 +50,20 @@ export default defineHandler(async (event) => {
     conds.push(eq(taskTemplate.activityCategoryId, activityCategoryId))
   if (status === 'PENDING' || status === 'EXPIRED') conds.push(eq(taskTemplate.status, status))
 
+  const whereClause = conds.length ? and(...conds) : undefined
+
+  // 总数（keyword 用到 bank.name，count 也需 join bank）
+  const [totalRow] = await db
+    .select({ total: sql<number>`count(*)` })
+    .from(taskTemplate)
+    .leftJoin(bank, eq(taskTemplate.bankId, bank.id))
+    .where(whereClause)
+
   const rows = await baseQuery()
-    .where(conds.length ? and(...conds) : undefined)
+    .where(whereClause)
     .orderBy(desc(taskTemplate.id))
-    .limit(limit)
-  return { list: rows }
+    .limit(pageSize)
+    .offset((page - 1) * pageSize)
+
+  return { list: rows, total: Number(totalRow?.total ?? 0), page, pageSize }
 })

@@ -28,6 +28,9 @@ const status = ref<string | undefined>(undefined)
 const searchResults = ref<TemplateOption[]>([])
 const searching = ref(false)
 const checkedIds = ref<number[]>([]) // 结果区勾选(待批量添加)
+const page = ref(1)
+const pageSize = ref(20)
+const total = ref(0)
 
 const bankOptions = ref<Opt[]>([])
 const categoryOptions = ref<Opt[]>([])
@@ -81,7 +84,7 @@ async function loadInitialSelection() {
   }
 }
 
-async function doSearch() {
+async function loadList() {
   searching.value = true
   try {
     const p = new URLSearchParams()
@@ -89,24 +92,43 @@ async function doSearch() {
     if (bankId.value) p.set('bankId', String(bankId.value))
     if (categoryId.value) p.set('activityCategoryId', String(categoryId.value))
     if (status.value) p.set('status', status.value)
-    const res = await requestJson<{ list: TemplateOption[] }>(`/api/plazaCustomTabs/templates/search?${p.toString()}`)
+    p.set('page', String(page.value))
+    p.set('pageSize', String(pageSize.value))
+    const res = await requestJson<{ list: TemplateOption[], total: number }>(
+      `/api/plazaCustomTabs/templates/search?${p.toString()}`,
+    )
     searchResults.value = res.list
+    total.value = res.total ?? 0
     checkedIds.value = []
   }
   catch (e: any) {
-    MessagePlugin.error(e?.message ?? '搜索失败')
+    MessagePlugin.error(e?.message ?? '加载活动失败')
   }
   finally {
     searching.value = false
   }
 }
 
+// 筛选变化 → 回到第 1 页重新加载
+function applyFilters() {
+  page.value = 1
+  loadList()
+}
 function resetFilters() {
   keyword.value = ''
   bankId.value = undefined
   categoryId.value = undefined
   status.value = undefined
+  applyFilters()
 }
+function onPageChange(info: { current: number, pageSize: number }) {
+  page.value = info.current
+  pageSize.value = info.pageSize
+  loadList()
+}
+
+// 打开即直接展示活动列表（第 1 页，无需先搜索）
+loadList()
 
 function addItem(t: TemplateOption) {
   if (selectedIdSet.value.has(t.id)) return
@@ -179,16 +201,16 @@ watch(
   <div>
     <!-- 筛选 -->
     <div class="filters">
-      <t-input v-model="keyword" placeholder="搜 title / 银行名" class="kw" clearable @keydown.enter="doSearch" />
-      <t-select v-model="bankId" :options="bankOptions" placeholder="银行" filterable clearable class="sel" />
-      <t-select v-model="categoryId" :options="categoryOptions" placeholder="活动分类" filterable clearable class="sel" />
-      <t-select v-model="status" :options="statusOptions" placeholder="状态" clearable class="sel-sm" />
-      <t-button :loading="searching" @click="doSearch">搜索</t-button>
+      <t-input v-model="keyword" placeholder="搜 title / 银行名" class="kw" clearable @keydown.enter="applyFilters" />
+      <t-select v-model="bankId" :options="bankOptions" placeholder="银行" filterable clearable class="sel" @change="applyFilters" />
+      <t-select v-model="categoryId" :options="categoryOptions" placeholder="活动分类" filterable clearable class="sel" @change="applyFilters" />
+      <t-select v-model="status" :options="statusOptions" placeholder="状态" clearable class="sel-sm" @change="applyFilters" />
+      <t-button :loading="searching" @click="applyFilters">搜索</t-button>
       <t-button variant="outline" @click="resetFilters">重置</t-button>
     </div>
 
-    <!-- 结果 -->
-    <div v-if="searchResults.length > 0" class="results">
+    <!-- 活动列表（打开即展示，分页浏览） -->
+    <div class="results">
       <div class="results-bar">
         <t-checkbox
           :checked="allChecked"
@@ -200,9 +222,10 @@ watch(
         <t-button size="small" :disabled="addableChecked.length === 0" @click="addChecked">
           添加选中（{{ addableChecked.length }}）
         </t-button>
-        <span class="muted">共 {{ searchResults.length }} 条</span>
+        <span class="muted">共 {{ total }} 条</span>
       </div>
       <t-checkbox-group v-model="checkedIds">
+        <div v-if="searchResults.length === 0" class="muted empty-hint">{{ searching ? '加载中…' : '无匹配活动' }}</div>
         <div v-for="t in searchResults" :key="t.id" class="row" :class="{ dim: t.status === 'EXPIRED' }">
           <t-checkbox :value="t.id" :disabled="selectedIdSet.has(t.id)" />
           <span class="info">
@@ -216,8 +239,16 @@ watch(
           <t-button v-else size="small" variant="text" @click="addItem(t)">添加</t-button>
         </div>
       </t-checkbox-group>
+      <t-pagination
+        v-if="total > pageSize"
+        class="pager"
+        :total="total"
+        :page-size="pageSize"
+        :current="page"
+        :page-size-options="[10, 20, 50]"
+        @change="onPageChange"
+      />
     </div>
-    <div v-else class="muted empty-hint">输入条件后点搜索（不填关键词也可仅按 银行/分类/状态 筛选）</div>
 
     <!-- 已选 -->
     <div class="selected">
@@ -291,4 +322,5 @@ watch(
 .sel-row { cursor: grab; }
 .sel-row.dragging { opacity: 0.4; background: #f1f5f9; }
 .handle { color: #cbd5e1; cursor: grab; user-select: none; }
+.pager { margin-top: 8px; display: flex; justify-content: flex-end; }
 </style>
