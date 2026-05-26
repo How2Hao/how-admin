@@ -45,7 +45,7 @@ export default defineHandler(async (event) => {
   if (body.sortOrder !== undefined)
     update.sortOrder = body.sortOrder
   if (body.remark !== undefined)
-    update.remark = body.remark.trim() ? body.remark.trim() : null
+    update.remark = body.remark.trim() || null
 
   if (body.iconBase64?.trim()) {
     const m = /^data:[^;]+;base64,(.+)$/.exec(body.iconBase64)
