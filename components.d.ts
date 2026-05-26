@@ -27,6 +27,7 @@ declare module 'vue' {
     GapMatrix: typeof import('./src/components/coverage-gap/GapMatrix.vue')['default']
     HorizontalBarChart: typeof import('./src/components/dashboard/HorizontalBarChart.vue')['default']
     KpiCard: typeof import('./src/components/dashboard/KpiCard.vue')['default']
+    KpiSparkCard: typeof import('./src/components/dashboard/KpiSparkCard.vue')['default']
     ParseTaskCard: typeof import('./src/components/bank-card-activities/ParseTaskCard.vue')['default']
     PieChart: typeof import('./src/components/dashboard/PieChart.vue')['default']
     PlazaCustomTabDialog: typeof import('./src/components/plaza-custom-tabs/PlazaCustomTabDialog.vue')['default']

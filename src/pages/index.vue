@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import { MessagePlugin } from 'tdesign-vue-next'
 import { requestJson } from '@/composables/useJsonRequest'
 import KpiCard from '@/components/dashboard/KpiCard.vue'
+import KpiSparkCard from '@/components/dashboard/KpiSparkCard.vue'
 import TrendLineChart from '@/components/dashboard/TrendLineChart.vue'
 import HorizontalBarChart from '@/components/dashboard/HorizontalBarChart.vue'
 import PieChart from '@/components/dashboard/PieChart.vue'
@@ -103,6 +104,28 @@ const userGrowthChart = computed(() => {
       { name: '新注册', data: t.map(r => r.registered), color: '#3b82f6' },
       { name: '新登录', data: t.map(r => r.active), color: '#10b981' },
     ],
+  }
+})
+
+// 用户增长图的文字汇总（原「总用户」卡合并进来）：总用户 / 今日新增 / 近 N 日新增
+const userGrowthSummary = computed(() => {
+  const k = data.value?.kpi.users
+  if (!k) return []
+  const days = data.value?.windowDays ?? 7
+  const windowNew = (data.value?.trends.userGrowth ?? []).reduce((s, r) => s + (r.registered || 0), 0)
+  return [
+    { label: '总用户', value: k.total },
+    { label: '今日新增', value: `+${k.todayNew}`, theme: 'success' as const },
+    { label: `近${days}日新增`, value: `+${windowNew}`, theme: 'success' as const },
+  ]
+})
+
+// 活跃用户 sparkline：复用每日活跃(新登录)序列，跟随顶部 7/30/90 窗口
+const activeSpark = computed(() => {
+  const t = data.value?.trends.userGrowth ?? []
+  return {
+    xAxis: t.map(r => r.date.slice(5)),
+    data: t.map(r => r.active),
   }
 })
 
@@ -228,27 +251,17 @@ onMounted(fetchOverview)
       <template v-if="data">
         <!-- ── KPI 区 ── -->
         <section class="kpi-grid">
-          <KpiCard
-            title="总用户"
-            :value="data.kpi.users.total"
-            :subs="[
-              { label: '今日新增', value: `+${data.kpi.users.todayNew}`, theme: 'success' },
-              { label: '7日新增', value: `+${data.kpi.users.weekNew}`, theme: 'success' },
-            ]"
-            :bars="[
-              { label: '活跃', value: data.kpi.users.statusDist.ACTIVE, color: '#16a34a' },
-              { label: '待绑定', value: data.kpi.users.statusDist.PENDING_BIND, color: '#f59e0b' },
-              { label: '禁用', value: data.kpi.users.statusDist.DISABLED, color: '#94a3b8' },
-            ]"
-          />
-          <KpiCard
-            title="活跃用户"
+          <KpiSparkCard
+            title="活跃用户（今日 DAU）"
             :value="data.kpi.activeUsers.today"
             :subs="[
-              { label: '今日 DAU', value: data.kpi.activeUsers.today },
               { label: '7日 WAU', value: data.kpi.activeUsers.week },
               { label: '30日 MAU', value: data.kpi.activeUsers.month },
             ]"
+            :x-axis="activeSpark.xAxis"
+            :data="activeSpark.data"
+            series-name="日活"
+            color="#2563eb"
           />
           <KpiCard
             title="总绑卡"
@@ -293,7 +306,7 @@ onMounted(fetchOverview)
 
         <!-- ── 趋势图区 ── -->
         <section class="trend-grid">
-          <TrendLineChart title="用户增长" :x-axis="userGrowthChart.xAxis" :series="userGrowthChart.series" />
+          <TrendLineChart title="用户增长" :summary="userGrowthSummary" :x-axis="userGrowthChart.xAxis" :series="userGrowthChart.series" />
           <TrendLineChart title="业务交互" :x-axis="interactionChart.xAxis" :series="interactionChart.series" />
           <TrendLineChart title="任务运营" :x-axis="taskOpsChart.xAxis" :series="taskOpsChart.series" />
           <TrendLineChart title="用户流失（按未活跃天数）" :x-axis="churnChart.xAxis" :series="churnChart.series" />

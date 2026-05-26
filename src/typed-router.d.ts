@@ -181,6 +181,13 @@ declare module 'vue-router/auto-routes' {
       Record<never, never>,
       | never
     >,
+    '/no-match-users/': RouteRecordInfo<
+      '/no-match-users/',
+      '/no-match-users',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
     '/plaza-custom-tabs/': RouteRecordInfo<
       '/plaza-custom-tabs/',
       '/plaza-custom-tabs',
@@ -372,6 +379,12 @@ declare module 'vue-router/auto-routes' {
     'src/pages/login.vue': {
       routes:
         | '/login'
+      views:
+        | never
+    }
+    'src/pages/no-match-users/index.vue': {
+      routes:
+        | '/no-match-users/'
       views:
         | never
     }

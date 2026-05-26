@@ -87,6 +87,12 @@ async function handleLogout() {
             </template>
             活动覆盖率
           </t-menu-item>
+          <t-menu-item value="/no-match-users" to="/no-match-users">
+            <template #icon>
+              <div i-carbon:user-activity mr-3 />
+            </template>
+            活动缺口用户
+          </t-menu-item>
           <t-submenu value="/card-templates">
             <template #icon>
               <div i-carbon:purchase mr-3 />
@@ -178,7 +184,7 @@ async function handleLogout() {
       </t-aside>
       <t-layout class="min-w-0 overflow-hidden">
         <Suspense>
-          <t-content class="app-content min-w-0 w-full overflow-x-hidden" font-sans p="x-4 y-4 md:y-5" text="center gray-700 dark:gray-200">
+          <t-content class="app-content min-w-0 w-full overflow-x-hidden" font-sans p="x-4 y-4 md:y-5" text="left gray-700 dark:gray-200">
             <RouterView />
           </t-content>
         </Suspense>
