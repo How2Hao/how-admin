@@ -277,6 +277,7 @@ export const benefitUsagePlatform = mysqlTable('benefit_usage_platform', {
   code: varchar({ length: 50 }).notNull(),
   name: varchar({ length: 50 }).notNull(),
   icon: varchar({ length: 255 }),
+  remark: varchar({ length: 255 }),
   sortOrder: int('sort_order').default(0),
   createdAt: datetime('created_at', { mode: 'string' }).default(sql`(CURRENT_TIMESTAMP)`),
 }, table => [
