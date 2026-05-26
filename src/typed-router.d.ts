@@ -83,13 +83,6 @@ declare module 'vue-router/auto-routes' {
       Record<never, never>,
       | never
     >,
-    '/banks/CreateBankDialog': RouteRecordInfo<
-      '/banks/CreateBankDialog',
-      '/banks/CreateBankDialog',
-      Record<never, never>,
-      Record<never, never>,
-      | never
-    >,
     '/benefit-pay-platforms/': RouteRecordInfo<
       '/benefit-pay-platforms/',
       '/benefit-pay-platforms',
@@ -100,62 +93,6 @@ declare module 'vue-router/auto-routes' {
     '/card-templates/': RouteRecordInfo<
       '/card-templates/',
       '/card-templates',
-      Record<never, never>,
-      Record<never, never>,
-      | never
-    >,
-    '/card-templates/components/BankItem': RouteRecordInfo<
-      '/card-templates/components/BankItem',
-      '/card-templates/components/BankItem',
-      Record<never, never>,
-      Record<never, never>,
-      | never
-    >,
-    '/card-templates/components/BankSidebar': RouteRecordInfo<
-      '/card-templates/components/BankSidebar',
-      '/card-templates/components/BankSidebar',
-      Record<never, never>,
-      Record<never, never>,
-      | never
-    >,
-    '/card-templates/components/CardCreateDialog': RouteRecordInfo<
-      '/card-templates/components/CardCreateDialog',
-      '/card-templates/components/CardCreateDialog',
-      Record<never, never>,
-      Record<never, never>,
-      | never
-    >,
-    '/card-templates/components/CardEditDialog': RouteRecordInfo<
-      '/card-templates/components/CardEditDialog',
-      '/card-templates/components/CardEditDialog',
-      Record<never, never>,
-      Record<never, never>,
-      | never
-    >,
-    '/card-templates/components/CardGrid': RouteRecordInfo<
-      '/card-templates/components/CardGrid',
-      '/card-templates/components/CardGrid',
-      Record<never, never>,
-      Record<never, never>,
-      | never
-    >,
-    '/card-templates/components/CardItem': RouteRecordInfo<
-      '/card-templates/components/CardItem',
-      '/card-templates/components/CardItem',
-      Record<never, never>,
-      Record<never, never>,
-      | never
-    >,
-    '/card-templates/credit': RouteRecordInfo<
-      '/card-templates/credit',
-      '/card-templates/credit',
-      Record<never, never>,
-      Record<never, never>,
-      | never
-    >,
-    '/card-templates/debit': RouteRecordInfo<
-      '/card-templates/debit',
-      '/card-templates/debit',
       Record<never, never>,
       Record<never, never>,
       | never
@@ -298,12 +235,6 @@ declare module 'vue-router/auto-routes' {
       views:
         | never
     }
-    'src/pages/banks/CreateBankDialog.vue': {
-      routes:
-        | '/banks/CreateBankDialog'
-      views:
-        | never
-    }
     'src/pages/benefit-pay-platforms/index.vue': {
       routes:
         | '/benefit-pay-platforms/'
@@ -313,54 +244,6 @@ declare module 'vue-router/auto-routes' {
     'src/pages/card-templates/index.vue': {
       routes:
         | '/card-templates/'
-      views:
-        | never
-    }
-    'src/pages/card-templates/components/BankItem.vue': {
-      routes:
-        | '/card-templates/components/BankItem'
-      views:
-        | never
-    }
-    'src/pages/card-templates/components/BankSidebar.vue': {
-      routes:
-        | '/card-templates/components/BankSidebar'
-      views:
-        | never
-    }
-    'src/pages/card-templates/components/CardCreateDialog.vue': {
-      routes:
-        | '/card-templates/components/CardCreateDialog'
-      views:
-        | never
-    }
-    'src/pages/card-templates/components/CardEditDialog.vue': {
-      routes:
-        | '/card-templates/components/CardEditDialog'
-      views:
-        | never
-    }
-    'src/pages/card-templates/components/CardGrid.vue': {
-      routes:
-        | '/card-templates/components/CardGrid'
-      views:
-        | never
-    }
-    'src/pages/card-templates/components/CardItem.vue': {
-      routes:
-        | '/card-templates/components/CardItem'
-      views:
-        | never
-    }
-    'src/pages/card-templates/credit.vue': {
-      routes:
-        | '/card-templates/credit'
-      views:
-        | never
-    }
-    'src/pages/card-templates/debit.vue': {
-      routes:
-        | '/card-templates/debit'
       views:
         | never
     }
