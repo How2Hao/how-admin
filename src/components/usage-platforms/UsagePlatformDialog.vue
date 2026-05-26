@@ -7,6 +7,7 @@ interface Row {
   code: string
   name: string
   icon: string | null
+  remark: string | null
   sortOrder: number | null
   createdAt: string | null
 }
@@ -25,9 +26,10 @@ interface Form {
   code: string
   name: string
   sortOrder: number
+  remark: string
 }
 
-const form = ref<Form>({ code: '', name: '', sortOrder: 0 })
+const form = ref<Form>({ code: '', name: '', sortOrder: 0, remark: '' })
 const saving = ref(false)
 const loading = ref(false)
 const iconPreview = ref<string>('')
@@ -37,7 +39,7 @@ const fileInputRef = ref<HTMLInputElement | null>(null)
 const isEdit = computed(() => props.platformId !== null)
 
 function reset() {
-  form.value = { code: '', name: '', sortOrder: 0 }
+  form.value = { code: '', name: '', sortOrder: 0, remark: '' }
   iconPreview.value = ''
   iconBase64.value = ''
 }
@@ -60,6 +62,7 @@ watch(() => props.visible, async (v) => {
         code: row.code,
         name: row.name,
         sortOrder: row.sortOrder ?? 0,
+        remark: row.remark ?? '',
       }
       iconPreview.value = row.icon ?? ''
     }
@@ -110,6 +113,7 @@ async function save() {
       code: form.value.code.trim(),
       name: form.value.name.trim(),
       sortOrder: form.value.sortOrder,
+      remark: form.value.remark.trim(),
     }
     if (iconBase64.value)
       body.iconBase64 = iconBase64.value
@@ -156,6 +160,14 @@ function cancel() {
         </t-form-item>
         <t-form-item label="排序">
           <t-input-number v-model="form.sortOrder" :min="0" style="width: 120px" />
+        </t-form-item>
+        <t-form-item label="备注">
+          <t-textarea
+            v-model="form.remark"
+            placeholder="如:微信小程序"
+            :maxlength="255"
+            :autosize="{ minRows: 1, maxRows: 3 }"
+          />
         </t-form-item>
         <t-form-item label="图标">
           <div

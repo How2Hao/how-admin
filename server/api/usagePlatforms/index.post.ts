@@ -11,6 +11,7 @@ interface Payload {
   code?: string
   name?: string
   sortOrder?: number
+  remark?: string
   iconBase64?: string
 }
 
@@ -41,6 +42,7 @@ export default defineHandler(async (event) => {
       code: body.code.trim(),
       name: body.name.trim(),
       sortOrder: body.sortOrder ?? 0,
+      remark: body.remark?.trim() ? body.remark.trim() : null,
     })
     id = Number((result as unknown as [{ insertId: number }])[0].insertId)
   }
