@@ -7,37 +7,32 @@ import { requestJson } from '@/composables/useJsonRequest'
 interface TemplateOption {
   id: number
   title: string
+  bankId: number
   bankName: string | null
   status: 'PENDING' | 'EXPIRED' | 'COMPLETED'
   categoryName: string | null
   date: number | null
 }
-interface Opt { label: string, value: number }
+interface BankGroup { bankId: number, bankName: string | null, count: number }
+interface DisplayGroup { bankId: number, bankName: string | null, count: number, items: TemplateOption[] | null }
 
 const props = defineProps<{ modelValue: number[] }>()
 const emit = defineEmits<{ 'update:modelValue': [v: number[]] }>()
 
 const selected = ref<TemplateOption[]>([])
+const checkedIds = ref<number[]>([])
 
-// 筛选条件
+// 搜索
 const keyword = ref('')
-const bankId = ref<number | undefined>(undefined)
-const categoryId = ref<number | undefined>(undefined)
-const status = ref<string | undefined>(undefined)
-
-const searchResults = ref<TemplateOption[]>([])
 const searching = ref(false)
-const checkedIds = ref<number[]>([]) // 结果区勾选(待批量添加)
-const page = ref(1)
-const pageSize = ref(20)
-const total = ref(0)
+const searchMode = ref(false)
+const searchGroups = ref<{ bankId: number, bankName: string | null, items: TemplateOption[] }[]>([])
 
-const bankOptions = ref<Opt[]>([])
-const categoryOptions = ref<Opt[]>([])
-const statusOptions = [
-  { label: '进行中', value: 'PENDING' },
-  { label: '已结束', value: 'EXPIRED' },
-]
+// 分组浏览（按银行）
+const bankGroups = ref<BankGroup[]>([])
+const bankActivities = ref<Record<number, TemplateOption[]>>({})
+const loadingBanks = ref<number[]>([])
+const expandedKeys = ref<number[]>([])
 
 const selectedIdSet = computed(() => new Set(selected.value.map(s => s.id)))
 
@@ -52,23 +47,91 @@ function fmtDate(ts: number | null) {
   const p = (n: number) => String(n).padStart(2, '0')
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`
 }
-
 function emitIds() { emit('update:modelValue', selected.value.map(s => s.id)) }
 
-async function loadRefData() {
+// 统一渲染结构：搜索模式用结果分组；浏览模式用银行分组（items=null 表示未懒加载）
+const displayGroups = computed<DisplayGroup[]>(() => {
+  if (searchMode.value)
+    return searchGroups.value.map(g => ({ bankId: g.bankId, bankName: g.bankName, count: g.items.length, items: g.items }))
+  return bankGroups.value.map(b => ({ bankId: b.bankId, bankName: b.bankName, count: b.count, items: bankActivities.value[b.bankId] ?? null }))
+})
+// 当前已加载到内存的所有活动（供批量添加取对象）
+const allLoadedById = computed(() => {
+  const m = new Map<number, TemplateOption>()
+  for (const arr of Object.values(bankActivities.value)) for (const t of arr) m.set(t.id, t)
+  for (const g of searchGroups.value) for (const t of g.items) m.set(t.id, t)
+  return m
+})
+const addableChecked = computed(() => checkedIds.value.filter(id => !selectedIdSet.value.has(id)))
+const headerHint = computed(() =>
+  searchMode.value
+    ? `搜到 ${searchGroups.value.reduce((n, g) => n + g.items.length, 0)} 条`
+    : `共 ${bankGroups.value.length} 家银行`,
+)
+
+async function loadBankGroups() {
   try {
-    const [b, c] = await Promise.all([
-      requestJson<{ list: { id: number, name: string }[] }>('/api/banks'),
-      requestJson<{ list: { id: number, name: string }[] }>('/api/activityCategories'),
-    ])
-    bankOptions.value = b.list.map(x => ({ label: x.name, value: x.id }))
-    categoryOptions.value = c.list.map(x => ({ label: x.name, value: x.id }))
+    const res = await requestJson<{ list: BankGroup[] }>('/api/plazaCustomTabs/templates/banks')
+    bankGroups.value = res.list
   }
   catch (e: any) {
-    MessagePlugin.error(e?.message ?? '加载筛选项失败')
+    MessagePlugin.error(e?.message ?? '加载银行分组失败')
   }
 }
-loadRefData()
+loadBankGroups()
+
+async function loadBankActivities(bankId: number) {
+  if (bankActivities.value[bankId] || loadingBanks.value.includes(bankId)) return
+  loadingBanks.value = [...loadingBanks.value, bankId]
+  try {
+    const res = await requestJson<{ list: TemplateOption[] }>(
+      `/api/plazaCustomTabs/templates/search?bankId=${bankId}&pageSize=200`,
+    )
+    bankActivities.value = { ...bankActivities.value, [bankId]: res.list }
+  }
+  catch (e: any) {
+    MessagePlugin.error(e?.message ?? '加载活动失败')
+  }
+  finally {
+    loadingBanks.value = loadingBanks.value.filter(x => x !== bankId)
+  }
+}
+function onCollapseChange(keys: number[]) {
+  for (const k of keys) loadBankActivities(k)
+}
+
+async function doSearch() {
+  const kw = keyword.value.trim()
+  if (!kw) { resetSearch(); return }
+  searching.value = true
+  try {
+    const res = await requestJson<{ list: TemplateOption[] }>(
+      `/api/plazaCustomTabs/templates/search?keyword=${encodeURIComponent(kw)}&pageSize=200`,
+    )
+    const groups = new Map<number, { bankId: number, bankName: string | null, items: TemplateOption[] }>()
+    for (const t of res.list) {
+      const g = groups.get(t.bankId) ?? { bankId: t.bankId, bankName: t.bankName, items: [] }
+      g.items.push(t)
+      groups.set(t.bankId, g)
+    }
+    searchGroups.value = [...groups.values()]
+    searchMode.value = true
+    expandedKeys.value = searchGroups.value.map(g => g.bankId) // 搜索结果默认全展开
+  }
+  catch (e: any) {
+    MessagePlugin.error(e?.message ?? '搜索失败')
+  }
+  finally {
+    searching.value = false
+  }
+}
+function resetSearch() {
+  keyword.value = ''
+  searchMode.value = false
+  searchGroups.value = []
+  expandedKeys.value = []
+  checkedIds.value = []
+}
 
 async function loadInitialSelection() {
   if (props.modelValue.length === 0) { selected.value = []; return }
@@ -84,75 +147,18 @@ async function loadInitialSelection() {
   }
 }
 
-async function loadList() {
-  searching.value = true
-  try {
-    const p = new URLSearchParams()
-    if (keyword.value.trim()) p.set('keyword', keyword.value.trim())
-    if (bankId.value) p.set('bankId', String(bankId.value))
-    if (categoryId.value) p.set('activityCategoryId', String(categoryId.value))
-    if (status.value) p.set('status', status.value)
-    p.set('page', String(page.value))
-    p.set('pageSize', String(pageSize.value))
-    const res = await requestJson<{ list: TemplateOption[], total: number }>(
-      `/api/plazaCustomTabs/templates/search?${p.toString()}`,
-    )
-    searchResults.value = res.list
-    total.value = res.total ?? 0
-    checkedIds.value = []
-  }
-  catch (e: any) {
-    MessagePlugin.error(e?.message ?? '加载活动失败')
-  }
-  finally {
-    searching.value = false
-  }
-}
-
-// 筛选变化 → 回到第 1 页重新加载
-function applyFilters() {
-  page.value = 1
-  loadList()
-}
-function resetFilters() {
-  keyword.value = ''
-  bankId.value = undefined
-  categoryId.value = undefined
-  status.value = undefined
-  applyFilters()
-}
-function onPageChange(info: { current: number, pageSize: number }) {
-  page.value = info.current
-  pageSize.value = info.pageSize
-  loadList()
-}
-
-// 打开即直接展示活动列表（第 1 页，无需先搜索）
-loadList()
-
 function addItem(t: TemplateOption) {
   if (selectedIdSet.value.has(t.id)) return
   selected.value = [...selected.value, t]
   emitIds()
 }
-
-// 批量添加：结果中勾选且未选过的
-const allResultsAddable = computed(() => searchResults.value.filter(t => !selectedIdSet.value.has(t.id)))
-const addableChecked = computed(() => checkedIds.value.filter(id => !selectedIdSet.value.has(id)))
-const allChecked = computed(() => allResultsAddable.value.length > 0 && addableChecked.value.length === allResultsAddable.value.length)
-
 function addChecked() {
-  const ids = new Set(addableChecked.value)
-  const toAdd = searchResults.value.filter(t => ids.has(t.id))
+  const toAdd = addableChecked.value.map(id => allLoadedById.value.get(id)).filter(Boolean) as TemplateOption[]
   if (toAdd.length === 0) return
   selected.value = [...selected.value, ...toAdd]
   checkedIds.value = []
   emitIds()
 }
-function toggleSelectAll(checked: boolean) {
-  checkedIds.value = checked ? allResultsAddable.value.map(t => t.id) : []
-}
-
 function removeItem(id: number) {
   selected.value = selected.value.filter(s => s.id !== id)
   emitIds()
@@ -199,55 +205,46 @@ watch(
 
 <template>
   <div>
-    <!-- 筛选 -->
+    <!-- 搜索 -->
     <div class="filters">
-      <t-input v-model="keyword" placeholder="搜 title / 银行名" class="kw" clearable @keydown.enter="applyFilters" />
-      <t-select v-model="bankId" :options="bankOptions" placeholder="银行" filterable clearable class="sel" @change="applyFilters" />
-      <t-select v-model="categoryId" :options="categoryOptions" placeholder="活动分类" filterable clearable class="sel" @change="applyFilters" />
-      <t-select v-model="status" :options="statusOptions" placeholder="状态" clearable class="sel-sm" @change="applyFilters" />
-      <t-button :loading="searching" @click="applyFilters">搜索</t-button>
-      <t-button variant="outline" @click="resetFilters">重置</t-button>
+      <t-input v-model="keyword" placeholder="搜活动 title / 银行名" class="kw" clearable @keydown.enter="doSearch" @clear="resetSearch" />
+      <t-button :loading="searching" @click="doSearch">搜索</t-button>
+      <t-button v-if="searchMode" variant="outline" @click="resetSearch">返回银行分组</t-button>
     </div>
 
-    <!-- 活动列表（打开即展示，分页浏览） -->
+    <!-- 活动：按银行分组折叠展示 -->
     <div class="results">
       <div class="results-bar">
-        <t-checkbox
-          :checked="allChecked"
-          :indeterminate="addableChecked.length > 0 && !allChecked"
-          @change="toggleSelectAll"
-        >
-          全选可加（{{ allResultsAddable.length }}）
-        </t-checkbox>
-        <t-button size="small" :disabled="addableChecked.length === 0" @click="addChecked">
-          添加选中（{{ addableChecked.length }}）
-        </t-button>
-        <span class="muted">共 {{ total }} 条</span>
+        <t-button size="small" :disabled="addableChecked.length === 0" @click="addChecked">添加选中（{{ addableChecked.length }}）</t-button>
+        <span class="muted">{{ headerHint }}</span>
       </div>
+
       <t-checkbox-group v-model="checkedIds">
-        <div v-if="searchResults.length === 0" class="muted empty-hint">{{ searching ? '加载中…' : '无匹配活动' }}</div>
-        <div v-for="t in searchResults" :key="t.id" class="row" :class="{ dim: t.status === 'EXPIRED' }">
-          <t-checkbox :value="t.id" :disabled="selectedIdSet.has(t.id)" />
-          <span class="info">
-            #{{ t.id }} {{ t.title }}
-            <t-tag size="small" variant="light" :theme="statusMeta(t.status).theme">{{ statusMeta(t.status).label }}</t-tag>
-            <span class="muted">
-              {{ t.bankName ?? '-' }}<template v-if="t.categoryName"> · {{ t.categoryName }}</template><template v-if="fmtDate(t.date)"> · {{ fmtDate(t.date) }}</template>
-            </span>
-          </span>
-          <span v-if="selectedIdSet.has(t.id)" class="muted added">已添加</span>
-          <t-button v-else size="small" variant="text" @click="addItem(t)">添加</t-button>
-        </div>
+        <div v-if="searchMode && displayGroups.length === 0" class="muted empty-hint">{{ searching ? '搜索中…' : '无匹配活动' }}</div>
+        <t-collapse v-model="expandedKeys" @change="onCollapseChange">
+          <t-collapse-panel
+            v-for="g in displayGroups"
+            :key="g.bankId"
+            :value="g.bankId"
+            :header="`${g.bankName ?? '未知银行'}（${g.count}）`"
+          >
+            <div v-if="g.items === null" class="muted">{{ loadingBanks.includes(g.bankId) ? '加载中…' : '展开加载…' }}</div>
+            <div v-else-if="g.items.length === 0" class="muted">该银行暂无活动</div>
+            <template v-else>
+              <div v-for="t in g.items" :key="t.id" class="row" :class="{ dim: t.status === 'EXPIRED' }">
+                <t-checkbox :value="t.id" :disabled="selectedIdSet.has(t.id)" />
+                <span class="info">
+                  #{{ t.id }} {{ t.title }}
+                  <t-tag size="small" variant="light" :theme="statusMeta(t.status).theme">{{ statusMeta(t.status).label }}</t-tag>
+                  <span class="muted"><template v-if="t.categoryName">{{ t.categoryName }} · </template>{{ fmtDate(t.date) || '无日期' }}</span>
+                </span>
+                <span v-if="selectedIdSet.has(t.id)" class="muted added">已添加</span>
+                <t-button v-else size="small" variant="text" @click="addItem(t)">添加</t-button>
+              </div>
+            </template>
+          </t-collapse-panel>
+        </t-collapse>
       </t-checkbox-group>
-      <t-pagination
-        v-if="total > pageSize"
-        class="pager"
-        :total="total"
-        :page-size="pageSize"
-        :current="page"
-        :page-size-options="[10, 20, 50]"
-        @change="onPageChange"
-      />
     </div>
 
     <!-- 已选 -->
@@ -284,11 +281,8 @@ watch(
   display: flex;
   gap: 8px;
   margin-bottom: 12px;
-  flex-wrap: wrap;
 }
 .filters .kw { flex: 1; min-width: 160px; }
-.filters .sel { width: 150px; }
-.filters .sel-sm { width: 110px; }
 .results {
   margin-bottom: 12px;
   border: 1px solid #e7e7e7;
@@ -301,9 +295,8 @@ watch(
   gap: 12px;
   margin-bottom: 6px;
 }
-.results :deep(.t-checkbox-group) {
-  display: block;
-  max-height: 220px;
+.results :deep(.t-collapse) {
+  max-height: 320px;
   overflow: auto;
 }
 .row {
@@ -317,10 +310,10 @@ watch(
 .row.dim { opacity: 0.55; }
 .muted { color: #94a3b8; }
 .added { font-size: 12px; }
-.empty-hint { margin-bottom: 12px; }
+.empty-hint { padding: 8px 0; }
+.selected { margin-top: 12px; }
 .selected .sel-head { font-weight: 500; margin-bottom: 6px; }
 .sel-row { cursor: grab; }
 .sel-row.dragging { opacity: 0.4; background: #f1f5f9; }
 .handle { color: #cbd5e1; cursor: grab; user-select: none; }
-.pager { margin-top: 8px; display: flex; justify-content: flex-end; }
 </style>

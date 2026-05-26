@@ -8,6 +8,7 @@ import { activityCategory, bank, taskTemplate } from '../../../../drizzle/schema
 const SELECT = {
   id: taskTemplate.id,
   title: taskTemplate.title,
+  bankId: taskTemplate.bankId,
   bankName: bank.name,
   status: taskTemplate.status,
   categoryName: activityCategory.name,
@@ -27,7 +28,7 @@ export default defineHandler(async (event) => {
   const keyword = String(q.keyword ?? '').trim()
   const idsRaw = String(q.ids ?? '').trim()
   const page = Math.max(1, Number(q.page ?? 1) || 1)
-  const pageSize = Math.min(50, Math.max(1, Number(q.pageSize ?? 20) || 20))
+  const pageSize = Math.min(200, Math.max(1, Number(q.pageSize ?? 20) || 20))
   const bankId = Number(q.bankId)
   const activityCategoryId = Number(q.activityCategoryId)
   const status = String(q.status ?? '').trim().toUpperCase()
