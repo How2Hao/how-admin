@@ -155,8 +155,8 @@ async function handleSubmit() {
           placeholder="^[A-Z][A-Z0-9_]{1,31}$，如 SPRING_2026"
         />
       </t-form-item>
-      <t-form-item label="名称" required-mark>
-        <t-input v-model="form.name" :maxlength="20" />
+      <t-form-item label="名称" help="名称与 Logo 至少填一个；纯图片 tab 可不填名称">
+        <t-input v-model="form.name" :maxlength="20" placeholder="纯图片 tab 可留空" />
       </t-form-item>
       <t-form-item label="Logo 图标">
         <div class="logo-uploader">
