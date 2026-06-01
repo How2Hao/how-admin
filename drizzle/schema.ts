@@ -764,3 +764,32 @@ export const plazaCustomTab = mysqlTable('plaza_custom_tab', {
   unique('uniq_plaza_custom_tab_code').on(table.code),
   index('idx_plaza_custom_tab_visible_sort').on(table.isVisible, table.sortOrder),
 ])
+
+export const jobTemplate = mysqlTable('job_template', {
+  id: int().autoincrement().notNull(),
+  title: varchar({ length: 200 }).notNull(),
+  repeatType: mysqlEnum('repeat_type', ['ONE_TIME', 'DAILY', 'WEEKLY', 'MONTHLY', 'YEARLY']).default('ONE_TIME').notNull(),
+  startDate: bigint('start_date', { mode: 'number' }),
+  endDate: bigint('end_date', { mode: 'number' }),
+  /** 档位数组（主存储），至少 1 个元素。length > 1 = 多档。logic 控制金额/笔数的且或关系 */
+  tiers: json('tiers').$type<{
+    minAmount: number | null
+    minCount: number | null
+    logic: 'AND' | 'OR'
+    description: string | null
+  }[]>().notNull(),
+  // 三个维度逻辑外键，均可空、可同时填多个
+  taskTemplateId: int('task_template_id'),
+  bankId: int('bank_id'),
+  bankCardTemplateId: int('bank_card_template_id'),
+  adminUserId: int('admin_user_id').default(1).notNull(),
+  isVisible: tinyint('is_visible').default(0).notNull(),
+  createdAt: bigint('created_at', { mode: 'number' }).notNull(),
+  updatedAt: datetime('updated_at', { mode: 'string' }).default(sql`(CURRENT_TIMESTAMP)`).notNull(),
+}, table => [
+  index('idx_job_template_admin_user').on(table.adminUserId),
+  index('idx_job_template_task_template').on(table.taskTemplateId),
+  index('idx_job_template_bank').on(table.bankId),
+  index('idx_job_template_card').on(table.bankCardTemplateId),
+  primaryKey({ columns: [table.id], name: 'job_template_id' }),
+])
