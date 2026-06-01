@@ -22,6 +22,8 @@ export function getJobTemplateSchema() {
     taskTemplateId: z.number().int().positive().nullish().transform(v => v ?? null),
     bankId: z.number().int().positive().nullish().transform(v => v ?? null),
     bankCardTemplateId: z.number().int().positive().nullish().transform(v => v ?? null),
+    regionCode: z.string().max(20).nullish().transform(v => v ?? null),
+    regionMatchStrategy: z.string().max(255).nullish().transform(v => v ?? null),
     isVisible: z.union([z.boolean(), z.literal(0), z.literal(1)]).optional(),
   })
 }
@@ -39,6 +41,8 @@ export function toJobTemplateMutation(input: JobTemplateInput) {
     taskTemplateId: input.taskTemplateId,
     bankId: input.bankId,
     bankCardTemplateId: input.bankCardTemplateId,
+    regionCode: input.regionCode,
+    regionMatchStrategy: input.regionMatchStrategy,
     isVisible: input.isVisible ? 1 : 0,
   }
 }

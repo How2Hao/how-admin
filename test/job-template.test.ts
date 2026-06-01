@@ -77,3 +77,60 @@ describe('parseJobTemplateId', () => {
     expect(() => parseJobTemplateId('abc')).toThrow()
   })
 })
+
+describe('getJobTemplateSchema - region fields', () => {
+  const base = {
+    title: '测试',
+    repeatType: 'MONTHLY' as const,
+    tiers: [{ minCount: 1, logic: 'OR' as const, minAmount: null, description: null }],
+  }
+
+  it('defaults regionCode and regionMatchStrategy to null when omitted', () => {
+    const r = getJobTemplateSchema().safeParse(base)
+    expect(r.success).toBe(true)
+    if (r.success) {
+      expect(r.data.regionCode).toBeNull()
+      expect(r.data.regionMatchStrategy).toBeNull()
+    }
+  })
+
+  it('accepts valid regionCode and regionMatchStrategy', () => {
+    const r = getJobTemplateSchema().safeParse({ ...base, regionCode: '330000', regionMatchStrategy: 'EXCLUDE_PLAN_SINGLE_CITY' })
+    expect(r.success).toBe(true)
+    if (r.success) {
+      expect(r.data.regionCode).toBe('330000')
+      expect(r.data.regionMatchStrategy).toBe('EXCLUDE_PLAN_SINGLE_CITY')
+    }
+  })
+
+  it('rejects regionMatchStrategy longer than 255 chars', () => {
+    const r = getJobTemplateSchema().safeParse({ ...base, regionCode: '100000', regionMatchStrategy: 'x'.repeat(256) })
+    expect(r.success).toBe(false)
+  })
+})
+
+describe('toJobTemplateMutation - region fields', () => {
+  it('includes regionCode and regionMatchStrategy in mutation output', () => {
+    const parsed = getJobTemplateSchema().parse({
+      title: 'x',
+      repeatType: 'MONTHLY',
+      tiers: [{ minCount: 1, logic: 'OR', minAmount: null, description: null }],
+      regionCode: '110000',
+      regionMatchStrategy: 'INCLUDE_ALL',
+    })
+    const v = toJobTemplateMutation(parsed)
+    expect(v.regionCode).toBe('110000')
+    expect(v.regionMatchStrategy).toBe('INCLUDE_ALL')
+  })
+
+  it('passes null through when region fields are absent', () => {
+    const parsed = getJobTemplateSchema().parse({
+      title: 'x',
+      repeatType: 'MONTHLY',
+      tiers: [{ minCount: 1, logic: 'OR', minAmount: null, description: null }],
+    })
+    const v = toJobTemplateMutation(parsed)
+    expect(v.regionCode).toBeNull()
+    expect(v.regionMatchStrategy).toBeNull()
+  })
+})
