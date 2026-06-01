@@ -1,5 +1,5 @@
 import { createError } from 'h3'
-import { z } from 'zod'
+import * as z from 'zod'
 
 export const JOB_TEMPLATE_REPEAT_TYPES = ['ONE_TIME', 'DAILY', 'WEEKLY', 'MONTHLY', 'YEARLY'] as const
 
