@@ -19,4 +19,4 @@ CREATE TABLE `job_template` (
   KEY `idx_job_template_task_template` (`task_template_id`),
   KEY `idx_job_template_bank` (`bank_id`),
   KEY `idx_job_template_card` (`bank_card_template_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
