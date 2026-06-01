@@ -782,6 +782,8 @@ export const jobTemplate = mysqlTable('job_template', {
   taskTemplateId: int('task_template_id'),
   bankId: int('bank_id'),
   bankCardTemplateId: int('bank_card_template_id'),
+  regionCode: varchar('region_code', { length: 20 }),
+  regionMatchStrategy: varchar('region_match_strategy', { length: 255 }),
   adminUserId: int('admin_user_id').default(1).notNull(),
   isVisible: tinyint('is_visible').default(0).notNull(),
   createdAt: bigint('created_at', { mode: 'number' }).notNull(),
