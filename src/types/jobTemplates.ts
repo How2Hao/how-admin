@@ -26,6 +26,16 @@ export interface JobTemplateRow {
   bankId: number | null
   bankName: string | null
   bankCardTemplateId: number | null
+  regionCode: string | null
+  regionMatchStrategy: string | null
   isVisible: number
   updatedAt: string | null
 }
+
+export type RegionMatchStrategy = 'EXACT' | 'INCLUDE_ALL' | 'EXCLUDE_PLAN_SINGLE_CITY'
+
+export const REGION_MATCH_STRATEGY_OPTIONS = [
+  { label: '精确匹配', value: 'EXACT' },
+  { label: '省（含全部地市）', value: 'INCLUDE_ALL' },
+  { label: '省（排除计划单列市）', value: 'EXCLUDE_PLAN_SINGLE_CITY' },
+]
