@@ -6,6 +6,8 @@ import { REPEAT_TYPE_OPTIONS, type JobTemplateRow, type JobTemplateTier } from '
 const props = defineProps<{ visible: boolean, jobId: number | null }>()
 const emit = defineEmits<{ 'update:visible': [boolean], 'saved': [] }>()
 
+const LOGIC_OPTIONS = [{ label: '且', value: 'AND' }, { label: '或', value: 'OR' }]
+
 function emptyTier(): JobTemplateTier {
   return { minAmount: null, minCount: null, logic: 'AND', description: null }
 }
@@ -69,6 +71,32 @@ function removeTier(i: number) {
     form.tiers.splice(i, 1)
 }
 
+// Writable computeds for nullable top-level fields (null <-> undefined bridge for TDesign)
+const startDateModel = computed({
+  get: () => form.startDate ?? undefined,
+  set: (v) => { form.startDate = v ?? null },
+})
+
+const endDateModel = computed({
+  get: () => form.endDate ?? undefined,
+  set: (v) => { form.endDate = v ?? null },
+})
+
+const taskTemplateIdModel = computed({
+  get: () => form.taskTemplateId ?? undefined,
+  set: (v) => { form.taskTemplateId = typeof v === 'number' ? v : null },
+})
+
+const bankIdModel = computed({
+  get: () => form.bankId ?? undefined,
+  set: (v) => { form.bankId = typeof v === 'number' ? v : null },
+})
+
+const bankCardTemplateIdModel = computed({
+  get: () => form.bankCardTemplateId ?? undefined,
+  set: (v) => { form.bankCardTemplateId = typeof v === 'number' ? v : null },
+})
+
 async function handleConfirm() {
   if (!form.title.trim()) {
     MessagePlugin.warning('请填写标题')
@@ -111,6 +139,7 @@ async function handleConfirm() {
     :confirm-btn="{ content: '保存', loading: saving }"
     @update:visible="emit('update:visible', $event)"
     @confirm="handleConfirm"
+    @close="emit('update:visible', false)"
   >
     <t-form label-width="90px">
       <t-form-item label="标题">
@@ -120,19 +149,19 @@ async function handleConfirm() {
         <t-select v-model="form.repeatType" :options="[...REPEAT_TYPE_OPTIONS]" />
       </t-form-item>
       <t-form-item label="有效期起">
-        <t-date-picker :model-value="(form.startDate as any)" value-type="time-stamp" clearable @change="(v: any) => form.startDate = v || null" />
+        <t-date-picker v-model="startDateModel" value-type="time-stamp" clearable />
       </t-form-item>
       <t-form-item label="有效期止">
-        <t-date-picker :model-value="(form.endDate as any)" value-type="time-stamp" clearable @change="(v: any) => form.endDate = v || null" />
+        <t-date-picker v-model="endDateModel" value-type="time-stamp" clearable />
       </t-form-item>
       <t-form-item label="关联活动ID">
-        <t-input-number :model-value="(form.taskTemplateId as any)" :min="1" theme="normal" placeholder="可空" @change="(v: any) => form.taskTemplateId = v ?? null" />
+        <t-input-number v-model="taskTemplateIdModel" :min="1" theme="normal" placeholder="可空" />
       </t-form-item>
       <t-form-item label="关联银行ID">
-        <t-input-number :model-value="(form.bankId as any)" :min="1" theme="normal" placeholder="可空" @change="(v: any) => form.bankId = v ?? null" />
+        <t-input-number v-model="bankIdModel" :min="1" theme="normal" placeholder="可空" />
       </t-form-item>
       <t-form-item label="关联模板卡ID">
-        <t-input-number :model-value="(form.bankCardTemplateId as any)" :min="1" theme="normal" placeholder="可空" @change="(v: any) => form.bankCardTemplateId = v ?? null" />
+        <t-input-number v-model="bankCardTemplateIdModel" :min="1" theme="normal" placeholder="可空" />
       </t-form-item>
       <t-form-item label="可见">
         <t-switch v-model="form.isVisible" />
@@ -140,10 +169,26 @@ async function handleConfirm() {
       <t-form-item label="档位">
         <div class="w-full flex flex-col gap-2">
           <div v-for="(tier, i) in form.tiers" :key="i" class="flex items-center gap-2">
-            <t-input-number :model-value="(tier.minAmount as any)" placeholder="金额" theme="normal" style="width: 110px" @change="(v: any) => tier.minAmount = v ?? null" />
-            <t-input-number :model-value="(tier.minCount as any)" placeholder="笔数" theme="normal" style="width: 100px" @change="(v: any) => tier.minCount = v ?? null" />
-            <t-select v-model="tier.logic" :options="[{ label: '且', value: 'AND' }, { label: '或', value: 'OR' }]" style="width: 80px" />
-            <t-input :model-value="(tier.description as any)" placeholder="说明" @change="(v: any) => tier.description = v || null" />
+            <t-input-number
+              :model-value="tier.minAmount ?? undefined"
+              placeholder="金额"
+              theme="normal"
+              style="width: 110px"
+              @change="(v: string | number) => { tier.minAmount = typeof v === 'number' ? v : null }"
+            />
+            <t-input-number
+              :model-value="tier.minCount ?? undefined"
+              placeholder="笔数"
+              theme="normal"
+              style="width: 100px"
+              @change="(v: string | number) => { tier.minCount = typeof v === 'number' ? v : null }"
+            />
+            <t-select v-model="tier.logic" :options="LOGIC_OPTIONS" style="width: 80px" />
+            <t-input
+              :model-value="tier.description ?? undefined"
+              placeholder="说明"
+              @change="(v: string | number) => { tier.description = String(v) || null }"
+            />
             <t-button size="small" variant="text" theme="danger" :disabled="form.tiers.length <= 1" @click="removeTier(i)">
               删除
             </t-button>

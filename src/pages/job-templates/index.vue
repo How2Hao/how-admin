@@ -54,11 +54,13 @@ function handleSaved() {
   fetchList()
 }
 async function toggleVisible(row: JobTemplateRow) {
+  const prev = row.isVisible
+  row.isVisible = row.isVisible ? 0 : 1
   try {
-    await requestJson(`/api/jobTemplates/${row.id}/visibility`, { method: 'PUT', body: { isVisible: !row.isVisible } })
-    fetchList()
+    await requestJson(`/api/jobTemplates/${row.id}/visibility`, { method: 'PUT', body: { isVisible: row.isVisible } })
   }
   catch (e: any) {
+    row.isVisible = prev
     MessagePlugin.error(e?.message ?? '切换失败')
   }
 }
