@@ -18,12 +18,14 @@ export default defineHandler(async (event) => {
     })
   }
 
-  const [created] = await db.insert(jobTemplate).values({
+  // 用 mysql2 ResultSetHeader.insertId 取自增 id（对齐本库 usagePlatforms 写法）；
+  // $returningId() 在当前 drizzle-orm/mysql2 组合下返回空数组，故不用。
+  const result = await db.insert(jobTemplate).values({
     ...toJobTemplateMutation(parsed.data),
     adminUserId,
     createdAt: Date.now(),
-  }).$returningId()
-  const id = Number((created as { id: number }).id)
+  })
+  const id = Number((result as unknown as [{ insertId: number }])[0].insertId)
 
   const [row] = await db.select().from(jobTemplate).where(eq(jobTemplate.id, id)).limit(1)
   return row
