@@ -40,6 +40,7 @@ export default defineHandler(async (event) => {
       bankId: jobTemplate.bankId,
       bankName: bank.name,
       bankCardTemplateId: jobTemplate.bankCardTemplateId,
+      regionCode: jobTemplate.regionCode,
       isVisible: jobTemplate.isVisible,
       updatedAt: jobTemplate.updatedAt,
     })
@@ -54,6 +55,7 @@ export default defineHandler(async (event) => {
     list: rows.map(row => ({
       ...row,
       bankName: row.bankName ?? null,
+      regionCode: row.regionCode ?? null,
       tiers: Array.isArray(row.tiers) ? row.tiers : [],
       updatedAt: typeof row.updatedAt === 'string' ? row.updatedAt.slice(0, 16) : row.updatedAt,
     })),
