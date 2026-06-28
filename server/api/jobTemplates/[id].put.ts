@@ -2,7 +2,7 @@ import { eq, sql } from 'drizzle-orm'
 import { createError } from 'h3'
 import { defineHandler } from 'nitro'
 import { db } from '~~/db'
-import { getJobTemplateSchema, parseJobTemplateId, toJobTemplateMutation } from '~~/utils/jobTemplate'
+import { getJobTemplateSchema, parseJobTemplateId, syncJobTemplateTaskTemplate, toJobTemplateMutation } from '~~/utils/jobTemplate'
 import { jobTemplate } from '../../../drizzle/schema'
 
 export default defineHandler(async (event) => {
@@ -17,7 +17,10 @@ export default defineHandler(async (event) => {
     })
   }
 
-  const [existing] = await db.select({ id: jobTemplate.id })
+  const [existing] = await db.select({
+    id: jobTemplate.id,
+    taskTemplateId: jobTemplate.taskTemplateId,
+  })
     .from(jobTemplate).where(eq(jobTemplate.id, id)).limit(1)
   if (!existing) {
     throw createError({ statusCode: 404, statusMessage: '任务模板不存在' })
@@ -27,6 +30,7 @@ export default defineHandler(async (event) => {
     ...toJobTemplateMutation(parsed.data),
     updatedAt: sql`CURRENT_TIMESTAMP`,
   }).where(eq(jobTemplate.id, id))
+  await syncJobTemplateTaskTemplate(id, existing.taskTemplateId, parsed.data.taskTemplateId)
 
   const [row] = await db.select().from(jobTemplate).where(eq(jobTemplate.id, id)).limit(1)
   return row

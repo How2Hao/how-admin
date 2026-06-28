@@ -35,6 +35,7 @@ export interface BankTaskFormData {
   title: string
   ruleBrief: string
   ruleDetail: string
+  jobTemplateId: number | null
   bankId: number | null
   bankCardOrganization: number | null
   bankCardTemplateId: number | null

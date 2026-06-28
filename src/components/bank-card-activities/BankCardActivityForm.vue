@@ -5,6 +5,7 @@ import CouponPickerDialog from '@/components/bank-card-activities/CouponPickerDi
 const props = defineProps<{
   bankSelectOptions: SelectOption[]
   bankCardTemplateSelectOptions: SelectOption[]
+  jobTemplateSelectOptions?: SelectOption[]
   regionSelectOptions: SelectOption[]
   benefitUsagePlatformSelectOptions: SelectOption[]
   activityCategorySelectOptions: SelectOption[]
@@ -19,6 +20,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   searchBanks: [keyword: string]
   searchBankCardTemplates: [keyword: string]
+  searchJobTemplates: [keyword: string]
   searchRegions: [keyword: string]
   searchBenefitUsagePlatforms: [keyword: string]
   searchActivityCategories: [keyword: string]
@@ -119,6 +121,13 @@ const bankCardTemplateIdModel = computed({
   get: () => form.value.bankCardTemplateId ?? undefined,
   set: (value) => {
     form.value.bankCardTemplateId = typeof value === 'number' ? value : null
+  },
+})
+
+const jobTemplateIdModel = computed({
+  get: () => form.value.jobTemplateId ?? undefined,
+  set: (value) => {
+    form.value.jobTemplateId = typeof value === 'number' ? value : null
   },
 })
 
@@ -345,6 +354,19 @@ function removeLinkedCoupon(index: number) {
             :options="bankCardTemplateSelectOptions"
             placeholder="搜索"
             @search="emit('searchBankCardTemplates', $event)"
+          />
+        </t-form-item>
+      </div>
+      <div class="form-grid form-grid-3">
+        <t-form-item class="col-span-2" label="Job模板">
+          <t-select
+            v-model="jobTemplateIdModel"
+            filterable
+            clearable
+            :options="jobTemplateSelectOptions ?? []"
+            placeholder="搜索 Job 模板标题、活动标题或 ID"
+            @focus="emit('searchJobTemplates', '')"
+            @search="emit('searchJobTemplates', $event)"
           />
         </t-form-item>
       </div>

@@ -1,9 +1,12 @@
-import type { taskTemplate } from '../../drizzle/schema'
+import type { taskTemplate as taskTemplateSchema } from '../../drizzle/schema'
 import type { BankTemplateInput } from './bankCardActivityForm'
+import { and, eq, ne, sql } from 'drizzle-orm'
 import { createError } from 'h3'
+import { db } from '~~/db'
+import { jobTemplate, taskTemplate as taskTemplateTable } from '../../drizzle/schema'
 import { serializeNumberArray, toTimestamp } from './bankCardActivityForm'
 
-type TaskTemplateRow = typeof taskTemplate.$inferSelect
+type TaskTemplateRow = typeof taskTemplateSchema.$inferSelect
 
 export function parseSerializedNumberArray(value: string | null) {
   if (!value) {
@@ -71,6 +74,7 @@ export function toTemplateMutation(
     // rule_source 不在 toTemplateMutation 写入；统一交给 commitTemplateRuleSource()
     // 处理（在拿到 id 之后才能写图片路径，所以分两步）
     date: null,
+    jobTemplateId: tpl.jobTemplateId ?? null,
     bankId: tpl.bankId,
     bankCardOrganization: String(tpl.bankCardOrganization),
     bankCardTemplateId: tpl.bankCardTemplateId,
@@ -108,6 +112,7 @@ export function toTaskTemplateDetail(row: TaskTemplateRow) {
     title: row.title,
     ruleBrief: row.ruleBrief,
     ruleDetail: row.ruleDetail,
+    jobTemplateId: row.jobTemplateId ?? null,
     bankId: row.bankId,
     bankCardOrganization: row.bankCardOrganization ? Number(row.bankCardOrganization) : 1,
     bankCardTemplateId: row.bankCardTemplateId,
@@ -173,4 +178,42 @@ export function parseTaskTemplateId(rawId: string | undefined) {
   }
 
   return id
+}
+
+/**
+ * task_template 侧现在也保存 job_template_id；保存活动模板后同步 job_template.task_template_id，
+ * 避免两个 admin 页面看到不同的关联状态。
+ */
+export async function syncTaskTemplateJobTemplate(
+  taskTemplateId: number,
+  previousJobTemplateId: number | null | undefined,
+  nextJobTemplateId: number | null | undefined,
+) {
+  const prevId = previousJobTemplateId ?? null
+  const nextId = nextJobTemplateId ?? null
+
+  if (prevId && prevId !== nextId) {
+    await db.update(jobTemplate)
+      .set({
+        taskTemplateId: null,
+        updatedAt: sql`CURRENT_TIMESTAMP`,
+      })
+      .where(and(eq(jobTemplate.id, prevId), eq(jobTemplate.taskTemplateId, taskTemplateId)))
+  }
+
+  if (nextId) {
+    await db.update(taskTemplateTable)
+      .set({
+        jobTemplateId: null,
+        updatedAt: sql`CURRENT_TIMESTAMP`,
+      })
+      .where(and(eq(taskTemplateTable.jobTemplateId, nextId), ne(taskTemplateTable.id, taskTemplateId)))
+
+    await db.update(jobTemplate)
+      .set({
+        taskTemplateId,
+        updatedAt: sql`CURRENT_TIMESTAMP`,
+      })
+      .where(eq(jobTemplate.id, nextId))
+  }
 }

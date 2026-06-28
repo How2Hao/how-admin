@@ -15,16 +15,41 @@ export interface JobTemplateTier {
   description: string | null
 }
 
+export interface JobRewardWindowRule {
+  mode: 'NEXT_MONTH' | 'NEXT_WEEK' | 'AFTER_COMPLETION_DAYS' | 'FIXED'
+  startDay?: number | 'FIRST_DAY'
+  endDay?: number | 'LAST_DAY'
+  startTime?: string
+  endTime?: string
+  weekStartsOn?: number
+  startOffsetDays?: number
+  durationDays?: number
+  startAt?: number
+  endAt?: number
+}
+
 export interface JobTemplateRow {
   id: number
   title: string
+  description: string | null
   repeatType: RepeatType
+  date: number | null
   startDate: number | null
   endDate: number | null
+  daysOfWeek: string | null
+  daysOfMonth: string | null
+  yearlyMonths: string | null
+  yearlyDaysOfMonth: string | null
   tiers: JobTemplateTier[]
   taskTemplateId: number | null
+  taskTemplateTitle?: string | null
+  reminderTemplateId: number | null
+  reminderTemplateTitle?: string | null
+  reminderTemplateKind?: 'REMINDER' | 'EXPIRY_REMINDER' | null
+  rewardWindowRule: JobRewardWindowRule | null
+  rewardDescription: string | null
   bankId: number | null
-  bankName: string | null
+  bankName?: string | null
   bankCardTemplateId: number | null
   regionCode: string | null
   regionMatchStrategy: string | null

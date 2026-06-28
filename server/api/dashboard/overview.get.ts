@@ -81,6 +81,10 @@ export default defineHandler(async (event) => {
     rawUserOsSessions,
     rawNewUserOsSessions,
 
+    rawExpiryReminderKpi,
+    rawTaskStatsTotal,
+    rawTaskStatsByKind,
+
     rawOpenFeedback,
     rawAllActivity,
     rawTemplatesTop10,
@@ -254,6 +258,27 @@ export default defineHandler(async (event) => {
       INNER JOIN users u ON u.id = s.user_id AND u.created_at >= ${windowStart}
     `),
 
+    // ───── 过期卡券提醒任务 ─────
+    db.execute(sql`
+      SELECT COUNT(*) AS total, COUNT(DISTINCT user_id) AS user_count
+      FROM task
+      WHERE kind = 'EXPIRY_REMINDER'
+    `),
+
+    // ───── 任务统计（排除批量生成的 PIN，批量 created_at=1782061599175） ─────
+    db.execute(sql`
+      SELECT COUNT(*) AS total, COUNT(DISTINCT user_id) AS user_count
+      FROM task
+      WHERE NOT (kind = 'PIN' AND created_at = 1782061599175)
+    `),
+    db.execute(sql`
+      SELECT kind, COUNT(*) AS total, COUNT(DISTINCT user_id) AS user_count
+      FROM task
+      WHERE NOT (kind = 'PIN' AND created_at = 1782061599175)
+      GROUP BY kind
+      ORDER BY total DESC
+    `),
+
     // ───── tables ─────
     db.execute(sql`
       SELECT
@@ -395,7 +420,17 @@ export default defineHandler(async (event) => {
   const userOsDist = osDistFromSessions(rawUserOsSessions)
   const newUserOsDist = osDistFromSessions(rawNewUserOsSessions)
 
+  // ───── 任务统计 ─────
+  const ts = unwrapRows<any>(rawTaskStatsTotal)[0] ?? {}
+  const taskStatsByKind = unwrapRows<any>(rawTaskStatsByKind).map(r => ({
+    kind: String(r.kind),
+    total: Number(r.total) || 0,
+    userCount: Number(r.user_count) || 0,
+  }))
+
   // ───── 表格 ─────
+  const er = unwrapRows<any>(rawExpiryReminderKpi)[0] ?? {}
+
   const openFeedback = unwrapRows<any>(rawOpenFeedback).map(r => ({
     id: Number(r.id),
     type: String(r.type ?? ''),
@@ -484,6 +519,15 @@ export default defineHandler(async (event) => {
         visible: Number(bk.visible_cnt) || 0,
         hot: Number(bk.hot_cnt) || 0,
         byTypeTop3: bktop3.map(r => ({ bankType: String(r.bankType), count: Number(r.cnt) })),
+      },
+      expiryReminder: {
+        total: Number(er.total) || 0,
+        userCount: Number(er.user_count) || 0,
+      },
+      taskStats: {
+        total: Number(ts.total) || 0,
+        userCount: Number(ts.user_count) || 0,
+        byKind: taskStatsByKind,
       },
     },
     trends: {

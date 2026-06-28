@@ -1,7 +1,7 @@
-import { and, desc, eq, like, sql } from 'drizzle-orm'
+import { and, desc, eq, like, or, sql } from 'drizzle-orm'
 import { defineHandler } from 'nitro'
 import { db } from '~~/db'
-import { bank, jobTemplate } from '../../../drizzle/schema'
+import { jobTemplate, reminderTemplate, taskTemplate } from '../../../drizzle/schema'
 
 export default defineHandler(async (event) => {
   const url = new URL(event.req.url ?? '', 'http://localhost')
@@ -12,40 +12,51 @@ export default defineHandler(async (event) => {
     const v = url.searchParams.get(k)
     return v ? (Number(v) || null) : null
   }
-  const bankIdFilter = numParam('bankId')
   const taskTemplateIdFilter = numParam('taskTemplateId')
-  const bankCardTemplateIdFilter = numParam('bankCardTemplateId')
 
+  const kw = `%${keyword}%`
   const whereClause = and(
-    keyword ? like(jobTemplate.title, `%${keyword}%`) : undefined,
-    bankIdFilter ? eq(jobTemplate.bankId, bankIdFilter) : undefined,
+    keyword ? or(like(jobTemplate.title, kw), like(taskTemplate.title, kw)) : undefined,
     taskTemplateIdFilter ? eq(jobTemplate.taskTemplateId, taskTemplateIdFilter) : undefined,
-    bankCardTemplateIdFilter ? eq(jobTemplate.bankCardTemplateId, bankCardTemplateIdFilter) : undefined,
   )
 
   const [totalResult] = await db
     .select({ total: sql<number>`count(*)` })
     .from(jobTemplate)
+    .leftJoin(taskTemplate, eq(jobTemplate.taskTemplateId, taskTemplate.id))
     .where(whereClause)
 
   const rows = await db
     .select({
       id: jobTemplate.id,
       title: jobTemplate.title,
+      description: jobTemplate.description,
       repeatType: jobTemplate.repeatType,
+      date: jobTemplate.date,
       startDate: jobTemplate.startDate,
       endDate: jobTemplate.endDate,
+      daysOfWeek: jobTemplate.daysOfWeek,
+      daysOfMonth: jobTemplate.daysOfMonth,
+      yearlyMonths: jobTemplate.yearlyMonths,
+      yearlyDaysOfMonth: jobTemplate.yearlyDaysOfMonth,
       tiers: jobTemplate.tiers,
       taskTemplateId: jobTemplate.taskTemplateId,
+      taskTemplateTitle: taskTemplate.title,
+      reminderTemplateId: jobTemplate.reminderTemplateId,
+      reminderTemplateTitle: reminderTemplate.title,
+      reminderTemplateKind: reminderTemplate.kind,
+      rewardWindowRule: jobTemplate.rewardWindowRule,
+      rewardDescription: jobTemplate.rewardDescription,
       bankId: jobTemplate.bankId,
-      bankName: bank.name,
       bankCardTemplateId: jobTemplate.bankCardTemplateId,
       regionCode: jobTemplate.regionCode,
+      regionMatchStrategy: jobTemplate.regionMatchStrategy,
       isVisible: jobTemplate.isVisible,
       updatedAt: jobTemplate.updatedAt,
     })
     .from(jobTemplate)
-    .leftJoin(bank, eq(jobTemplate.bankId, bank.id))
+    .leftJoin(taskTemplate, eq(jobTemplate.taskTemplateId, taskTemplate.id))
+    .leftJoin(reminderTemplate, eq(jobTemplate.reminderTemplateId, reminderTemplate.id))
     .where(whereClause)
     .orderBy(desc(jobTemplate.id))
     .limit(pageSize)
@@ -54,8 +65,11 @@ export default defineHandler(async (event) => {
   return {
     list: rows.map(row => ({
       ...row,
-      bankName: row.bankName ?? null,
+      taskTemplateTitle: row.taskTemplateTitle ?? null,
+      reminderTemplateTitle: row.reminderTemplateTitle ?? null,
+      reminderTemplateKind: row.reminderTemplateKind ?? null,
       regionCode: row.regionCode ?? null,
+      regionMatchStrategy: row.regionMatchStrategy ?? null,
       tiers: Array.isArray(row.tiers) ? row.tiers : [],
       updatedAt: typeof row.updatedAt === 'string' ? row.updatedAt.slice(0, 16) : row.updatedAt,
     })),

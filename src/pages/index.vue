@@ -19,6 +19,8 @@ interface Overview {
     transactions: { total: number, todayNew: number, income: number, expense: number }
     feedback: { open: number, inProgress: number, totalUnresolved: number }
     banks: { total: number, visible: number, hot: number, byTypeTop3: { bankType: string, count: number }[] }
+    expiryReminder: { total: number, userCount: number }
+    taskStats: { total: number, userCount: number, byKind: { kind: string, total: number, userCount: number }[] }
   }
   trends: {
     userGrowth: { date: string, registered: number, active: number }[]
@@ -48,6 +50,14 @@ interface Overview {
     }[]
     templatesTotal: number
   }
+}
+
+const KIND_LABEL: Record<string, string> = {
+  PIN: 'PIN提醒',
+  REMINDER: '普通提醒',
+  EXPIRY_REMINDER: '过期卡券',
+  BILL_REMINDER: '还款提醒',
+  TRACKING: '记录追踪',
 }
 
 const BANK_TYPE_LABEL: Record<string, string> = {
@@ -137,17 +147,6 @@ const interactionChart = computed(() => {
       { name: '绑卡', data: t.map(r => r.cards), color: '#8b5cf6' },
       { name: '记账', data: t.map(r => r.transactions), color: '#f59e0b' },
       { name: '反馈', data: t.map(r => r.feedback), color: '#ef4444' },
-    ],
-  }
-})
-
-const taskOpsChart = computed(() => {
-  const t = data.value?.trends.taskOps ?? []
-  return {
-    xAxis: t.map(r => r.date.slice(5)),
-    series: [
-      { name: '模板新增', data: t.map(r => r.templatesCreated), color: '#0ea5e9' },
-      { name: '任务完成', data: t.map(r => r.occurrencesCompleted), color: '#22c55e' },
     ],
   }
 })
@@ -302,13 +301,41 @@ onMounted(fetchOverview)
               })),
             ]"
           />
+          <KpiCard
+            title="过期卡券提醒"
+            :value="data.kpi.expiryReminder.total"
+            :subs="[{ label: '使用用户数', value: data.kpi.expiryReminder.userCount, theme: 'warning' }]"
+          />
         </section>
 
         <!-- ── 趋势图区 ── -->
         <section class="trend-grid">
           <TrendLineChart title="用户增长" :summary="userGrowthSummary" :x-axis="userGrowthChart.xAxis" :series="userGrowthChart.series" />
           <TrendLineChart title="业务交互" :x-axis="interactionChart.xAxis" :series="interactionChart.series" />
-          <TrendLineChart title="任务运营" :x-axis="taskOpsChart.xAxis" :series="taskOpsChart.series" />
+          <t-card :bordered="true" header-bordered class="task-stat-card">
+            <template #header>
+              <div class="task-stat-header">
+                <span class="task-stat-title">任务统计</span>
+                <div class="task-stat-totals">
+                  <span class="task-stat-num">{{ data.kpi.taskStats.total }}</span>
+                  <span class="task-stat-unit">条</span>
+                  <span class="task-stat-sep">·</span>
+                  <span class="task-stat-num">{{ data.kpi.taskStats.userCount }}</span>
+                  <span class="task-stat-unit">位用户</span>
+                </div>
+              </div>
+            </template>
+            <div class="task-kind-list">
+              <div v-for="k in data.kpi.taskStats.byKind" :key="k.kind" class="task-kind-row">
+                <span class="task-kind-label">{{ KIND_LABEL[k.kind] ?? k.kind }}</span>
+                <div class="task-kind-vals">
+                  <b class="task-kind-total">{{ k.total }}</b>
+                  <span class="task-kind-sep">条</span>
+                  <span class="task-kind-user muted">{{ k.userCount }} 人</span>
+                </div>
+              </div>
+            </div>
+          </t-card>
           <TrendLineChart title="用户流失（按未活跃天数）" :x-axis="churnChart.xAxis" :series="churnChart.series" />
         </section>
 
@@ -468,4 +495,26 @@ onMounted(fetchOverview)
 }
 .template-bank { font-size: 11px; color: #94a3b8; }
 .count-value { font-size: 13px; font-weight: 600; color: #0f172a; }
+
+/* 任务统计卡 */
+.task-stat-card { height: 100%; }
+.task-stat-header {
+  display: flex; justify-content: space-between; align-items: center; width: 100%;
+}
+.task-stat-title { font-size: 14px; font-weight: 600; color: #0f172a; }
+.task-stat-totals { display: flex; align-items: baseline; gap: 4px; }
+.task-stat-num { font-size: 20px; font-weight: 700; color: #0f172a; }
+.task-stat-unit { font-size: 12px; color: #64748b; }
+.task-stat-sep { font-size: 12px; color: #cbd5e1; margin: 0 4px; }
+.task-kind-list { display: flex; flex-direction: column; gap: 10px; padding: 4px 0; }
+.task-kind-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 8px 12px;
+  background: #f8fafc; border-radius: 6px;
+}
+.task-kind-label { font-size: 13px; color: #334155; font-weight: 500; }
+.task-kind-vals { display: flex; align-items: baseline; gap: 4px; }
+.task-kind-total { font-size: 15px; font-weight: 700; color: #0f172a; }
+.task-kind-sep { font-size: 12px; color: #64748b; }
+.task-kind-user { font-size: 12px; margin-left: 4px; }
 </style>

@@ -1,7 +1,7 @@
 import { and, desc, eq, like, sql } from 'drizzle-orm'
 import { defineHandler } from 'nitro'
 import { db } from '~~/db'
-import { activityCategory, bank, benefitPayPlatform, benefitUsagePlatform, cardOrganization, region, taskTemplate } from '../../../../drizzle/schema'
+import { activityCategory, bank, benefitPayPlatform, benefitUsagePlatform, cardOrganization, jobTemplate, region, taskTemplate } from '../../../../drizzle/schema'
 import { formatTimestamp, parseSerializedNumberArray } from '../../../utils/taskTemplate'
 
 export default defineHandler(async (event) => {
@@ -25,6 +25,8 @@ export default defineHandler(async (event) => {
     .select({
       id: taskTemplate.id,
       title: taskTemplate.title,
+      jobTemplateId: taskTemplate.jobTemplateId,
+      jobTemplateTitle: jobTemplate.title,
       bankId: taskTemplate.bankId,
       bankName: bank.name,
       bankLogo: bank.logo,
@@ -61,6 +63,7 @@ export default defineHandler(async (event) => {
     .leftJoin(benefitPayPlatform, eq(taskTemplate.benefitPayPlatformId, benefitPayPlatform.id))
     .leftJoin(benefitUsagePlatform, eq(taskTemplate.benefitUsagePlatformId, benefitUsagePlatform.id))
     .leftJoin(activityCategory, eq(taskTemplate.activityCategoryId, activityCategory.id))
+    .leftJoin(jobTemplate, eq(taskTemplate.jobTemplateId, jobTemplate.id))
     .leftJoin(region, eq(taskTemplate.regionCode, region.regionCode))
     .leftJoin(cardOrganization, sql`${taskTemplate.bankCardOrganization} = ${cardOrganization.id}`)
     .where(whereClause)
@@ -72,6 +75,8 @@ export default defineHandler(async (event) => {
     list: rows.map(row => ({
       id: row.id,
       title: row.title,
+      jobTemplateId: row.jobTemplateId ?? null,
+      jobTemplateTitle: row.jobTemplateTitle ?? null,
       bankId: row.bankId,
       bankName: row.bankName,
       bankLogo: row.bankLogo,

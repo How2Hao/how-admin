@@ -44,6 +44,7 @@ const selectedBankId = ref<number | null>(null)
 const banks = ref<BankTab[]>([])
 const banksTotal = ref(0)
 const expandedIds = ref(new Set<number>())
+const jobTemplateOptions = ref<Array<{ label: string, value: number | string }>>([])
 
 const {
   form,
@@ -79,6 +80,8 @@ const bankSelectOptions = computed(() =>
   ensureCurrentOption(bankOptions.value, form.bankId, (value: number | string) => `当前银行 ID: ${value}`))
 const bankCardTemplateSelectOptions = computed(() =>
   ensureCurrentOption(bankCardTemplateOptions.value, form.bankCardTemplateId, (value: number | string) => `当前卡模板 ID: ${value}`))
+const jobTemplateSelectOptions = computed(() =>
+  ensureCurrentOption(jobTemplateOptions.value, form.jobTemplateId, (value: number | string) => `当前 Job 模板 ID: ${value}`))
 const regionSelectOptions = computed(() =>
   ensureCurrentOption(regionOptions.value, form.regionCode, (value: number | string) => `当前区域代码: ${value}`))
 const benefitUsagePlatformSelectOptions = computed(() =>
@@ -182,6 +185,11 @@ const columns = computed<PrimaryTableCol<TableRowData>[]>(() => [
     colKey: 'reminderTime',
     title: '提醒',
     width: 100,
+  },
+  {
+    colKey: 'jobTemplate',
+    title: 'Job',
+    width: 150,
   },
   {
     colKey: 'dateRange',
@@ -338,6 +346,22 @@ async function runSearch(handler: (keyword: string) => Promise<void>, searchKeyw
   }
 }
 
+async function searchJobTemplates(keyword = '') {
+  try {
+    const params = new URLSearchParams()
+    if (keyword.trim())
+      params.set('q', keyword.trim())
+    const query = params.toString()
+    const response = await requestJson<{ options: Array<{ label: string, value: number | string }> }>(
+      `/api/jobTemplates/search${query ? `?${query}` : ''}`,
+    )
+    jobTemplateOptions.value = response.options
+  }
+  catch (error) {
+    MessagePlugin.error(error instanceof Error ? error.message : '搜索 Job 模板失败')
+  }
+}
+
 async function loadList() {
   listLoading.value = true
 
@@ -390,6 +414,7 @@ function handlePageChange(pageInfo: { current: number, pageSize: number }) {
 function handleCreate() {
   editingId.value = null
   resetForm()
+  jobTemplateOptions.value = []
   formVisible.value = true
 }
 
@@ -422,6 +447,7 @@ async function handleCopy(row: TaskTemplateListItem) {
 async function handleEdit(row: TaskTemplateListItem) {
   editingId.value = row.id
   submitLoading.value = true
+  jobTemplateOptions.value = []
 
   try {
     const detail = await requestJson<TaskTemplateDetailResponse>(`/api/bankCardActivities/taskTemplates/${row.id}`)
@@ -440,6 +466,8 @@ async function handleEdit(row: TaskTemplateListItem) {
     // detail 现在是扁平的单 template；fillForm 仍按 { templates: [...] } 协议接收
     fillForm({ templates: [detail as any] }, couponLookup)
     await loadResolvedSelections(detail as any)
+    if ((detail as any).jobTemplateId)
+      await searchJobTemplates(String((detail as any).jobTemplateId))
     formVisible.value = true
   }
   catch (error) {
@@ -740,6 +768,15 @@ function handleDeleteCancel() {
               {{ formatReminderSummary(row) }}
             </span>
           </template>
+          <template #jobTemplate="{ row }">
+            <span v-if="(row as any).jobTemplateTitle" class="job-template-cell">
+              {{ (row as any).jobTemplateTitle }}
+            </span>
+            <span v-else-if="(row as any).jobTemplateId" class="job-template-cell">
+              Job ID: {{ (row as any).jobTemplateId }}
+            </span>
+            <span v-else class="text-gray-400 text-sm">—</span>
+          </template>
           <template #isVisible="{ row }">
             <t-switch
               :value="(row as any).isVisible === 1"
@@ -798,6 +835,7 @@ function handleDeleteCancel() {
         v-model:form="form"
         :bank-select-options="bankSelectOptions"
         :bank-card-template-select-options="bankCardTemplateSelectOptions"
+        :job-template-select-options="jobTemplateSelectOptions"
         :region-select-options="regionSelectOptions"
         :benefit-usage-platform-select-options="benefitUsagePlatformSelectOptions"
         :activity-category-select-options="activityCategorySelectOptions"
@@ -809,6 +847,7 @@ function handleDeleteCancel() {
         :repeat-type-options="repeatTypeOptions"
         @search-banks="runSearch(searchBanks, $event, '搜索银行失败')"
         @search-bank-card-templates="runSearch(searchBankCardTemplates, $event, '搜索银行卡模板失败')"
+        @search-job-templates="searchJobTemplates"
         @search-regions="runSearch(searchRegions, $event, '搜索地区失败')"
         @search-benefit-usage-platforms="runSearch(searchBenefitUsagePlatforms, $event, '搜索使用平台失败')"
         @search-activity-categories="runSearch(searchActivityCategories, $event, '搜索活动分类失败')"
@@ -942,6 +981,16 @@ function handleDeleteCancel() {
 .reminder-summary {
   font-size: 13px;
   color: #1e293b;
+  white-space: nowrap;
+}
+
+.job-template-cell {
+  display: inline-block;
+  max-width: 130px;
+  overflow: hidden;
+  font-size: 13px;
+  color: #1e293b;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 

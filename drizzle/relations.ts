@@ -1,5 +1,26 @@
 import { relations } from 'drizzle-orm/relations'
-import { accCategories, accLedgers, accTransactions, accUsers, app, bank, bankCard, bankCardTemplate, benefitPayPlatform, task, taskTemplateLike, userIdentities, users, userSessions } from './schema'
+import {
+  accCategories,
+  accLedgers,
+  accTransactions,
+  accUsers,
+  app,
+  bank,
+  bankCard,
+  bankCardTemplate,
+  benefitPayPlatform,
+  job,
+  jobRecurring,
+  jobRecurringOccurrence,
+  jobTemplate,
+  reminderTemplate,
+  task,
+  taskTemplate,
+  taskTemplateLike,
+  userIdentities,
+  users,
+  userSessions,
+} from './schema'
 
 export const accLedgersRelations = relations(accLedgers, ({ one, many }) => ({
   user: one(users, {
@@ -13,6 +34,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   accLedgers: many(accLedgers),
   accUsers: many(accUsers),
   bankCards: many(bankCard),
+  jobs: many(job),
   tasks: many(task),
   taskTemplateLikes: many(taskTemplateLike),
   userIdentities: many(userIdentities),
@@ -80,6 +102,86 @@ export const taskRelations = relations(task, ({ one }) => ({
     fields: [task.userId],
     references: [users.id],
   }),
+  reminderTemplate: one(reminderTemplate, {
+    fields: [task.reminderTemplateId],
+    references: [reminderTemplate.id],
+  }),
+  sourceJob: one(job, {
+    fields: [task.sourceJobId],
+    references: [job.id],
+  }),
+  sourceJobOccurrence: one(jobRecurringOccurrence, {
+    fields: [task.sourceJobOccurrenceId],
+    references: [jobRecurringOccurrence.id],
+  }),
+}))
+
+export const taskTemplateRelations = relations(taskTemplate, ({ one, many }) => ({
+  reminderTemplate: one(reminderTemplate, {
+    fields: [taskTemplate.reminderTemplateId],
+    references: [reminderTemplate.id],
+  }),
+  jobTemplate: one(jobTemplate, {
+    fields: [taskTemplate.jobTemplateId],
+    references: [jobTemplate.id],
+  }),
+  reminderTemplates: many(reminderTemplate),
+  jobTemplates: many(jobTemplate),
+  jobs: many(job),
+}))
+
+export const reminderTemplateRelations = relations(reminderTemplate, ({ one, many }) => ({
+  taskTemplate: one(taskTemplate, {
+    fields: [reminderTemplate.taskTemplateId],
+    references: [taskTemplate.id],
+  }),
+  tasks: many(task),
+  jobTemplates: many(jobTemplate),
+}))
+
+export const jobTemplateRelations = relations(jobTemplate, ({ one, many }) => ({
+  taskTemplate: one(taskTemplate, {
+    fields: [jobTemplate.taskTemplateId],
+    references: [taskTemplate.id],
+  }),
+  reminderTemplate: one(reminderTemplate, {
+    fields: [jobTemplate.reminderTemplateId],
+    references: [reminderTemplate.id],
+  }),
+  jobs: many(job),
+}))
+
+export const jobRelations = relations(job, ({ one, many }) => ({
+  user: one(users, {
+    fields: [job.userId],
+    references: [users.id],
+  }),
+  jobTemplate: one(jobTemplate, {
+    fields: [job.jobTemplateId],
+    references: [jobTemplate.id],
+  }),
+  taskTemplate: one(taskTemplate, {
+    fields: [job.taskTemplateId],
+    references: [taskTemplate.id],
+  }),
+  recurringRule: many(jobRecurring),
+  occurrences: many(jobRecurringOccurrence),
+  generatedTasks: many(task),
+}))
+
+export const jobRecurringRelations = relations(jobRecurring, ({ one }) => ({
+  job: one(job, {
+    fields: [jobRecurring.jobId],
+    references: [job.id],
+  }),
+}))
+
+export const jobRecurringOccurrenceRelations = relations(jobRecurringOccurrence, ({ one, many }) => ({
+  job: one(job, {
+    fields: [jobRecurringOccurrence.jobId],
+    references: [job.id],
+  }),
+  generatedTasks: many(task),
 }))
 
 export const taskTemplateLikeRelations = relations(taskTemplateLike, ({ one }) => ({
