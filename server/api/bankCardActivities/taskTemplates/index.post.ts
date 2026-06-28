@@ -5,7 +5,7 @@ import { referenceData } from '~~/agent/utils/referenceData'
 import { db } from '~~/db'
 import { getBankTaskCreateSchema } from '~~/utils/bankCardActivityForm'
 import { buildRuleSourceJson, commitTemplateImages } from '~~/utils/ruleSourceImages'
-import { toTemplateMutation } from '~~/utils/taskTemplate'
+import { syncTaskTemplateJobTemplate, toTemplateMutation } from '~~/utils/taskTemplate'
 import { taskTemplate } from '../../../../drizzle/schema'
 
 export default defineHandler(async (event) => {
@@ -45,6 +45,7 @@ export default defineHandler(async (event) => {
     const id = Number((created as { id: number }).id)
 
     await commitRuleSourceForRows(id, tpl, [id])
+    await syncTaskTemplateJobTemplate(id, null, tpl.jobTemplateId ?? null)
 
     return { id, ids: [id], title: tpl.title, groupId: tpl.groupId ?? null, tierExclusive: tpl.tierExclusive ?? null }
   }
@@ -65,6 +66,7 @@ export default defineHandler(async (event) => {
     .where(inArray(taskTemplate.id, createdIds))
 
   await commitRuleSourceForRows(createdIds[0], tpl, createdIds)
+  await syncTaskTemplateJobTemplate(groupId, null, tpl.jobTemplateId ?? null)
 
   return { id: groupId, ids: createdIds, title: tpl.title, groupId, tierExclusive: false }
 })

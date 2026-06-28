@@ -22,11 +22,13 @@ export default defineHandler(async (event) => {
   const body = await readBody<Payload>(event)
   const code = (body?.code ?? '').trim()
   const name = (body?.name ?? '').trim()
+  const logo = (body?.logo ?? '').trim()
 
   if (!code) throw createError({ statusCode: 400, statusMessage: 'code 不能为空' })
   if (!CODE_REGEX.test(code)) throw createError({ statusCode: 400, statusMessage: 'code 格式不合法：^[A-Z][A-Z0-9_]{1,31}$' })
   if (RESERVED_CODES.has(code)) throw createError({ statusCode: 400, statusMessage: `code 不能使用保留字 ${code}` })
-  if (!name) throw createError({ statusCode: 400, statusMessage: 'name 不能为空' })
+  // 三形态兼容：name 与 logo 至少填一个（纯图片 tab 可不填 name）
+  if (!name && !logo) throw createError({ statusCode: 400, statusMessage: 'name 与 logo 至少填一个' })
   if (name.length > 20) throw createError({ statusCode: 400, statusMessage: 'name 不能超过 20 个字符' })
 
   const templateIds = Array.isArray(body?.templateIds) ? body!.templateIds.filter(v => Number.isInteger(v) && v > 0) : []
@@ -50,7 +52,7 @@ export default defineHandler(async (event) => {
     const result = await db.insert(plazaCustomTab).values({
       code,
       name,
-      logo: body?.logo ?? null,
+      logo: logo || null,
       templateIds,
       sortOrder: body?.sortOrder ?? 0,
       isVisible: body?.isVisible ?? 1,

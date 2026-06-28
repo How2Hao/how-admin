@@ -16,6 +16,7 @@ export interface BankTaskLikeTemplate {
   title: string
   ruleBrief: string | null
   ruleDetail: string | null
+  jobTemplateId?: number | null
   bankId: number
   bankCardOrganization?: number | null
   bankCardTemplateId: number | null
@@ -75,6 +76,7 @@ export function createEmptyBankTaskForm(): BankTaskFormData {
     title: '',
     ruleBrief: '',
     ruleDetail: '',
+    jobTemplateId: null,
     bankId: null,
     bankCardOrganization: 1,
     bankCardTemplateId: null,
@@ -248,6 +250,7 @@ export function useBankCardActivityForm() {
     form.title = head.title
     form.ruleBrief = head.ruleBrief ?? ''
     form.ruleDetail = head.ruleDetail ?? ''
+    form.jobTemplateId = head.jobTemplateId ?? null
     form.bankId = head.bankId
     form.bankCardOrganization = head.bankCardOrganization ?? 1
     form.bankCardTemplateId = head.bankCardTemplateId
@@ -326,6 +329,7 @@ export function useBankCardActivityForm() {
       title: form.title.trim(),
       ruleBrief: normalizeNullableString(form.ruleBrief),
       ruleDetail: normalizeNullableString(form.ruleDetail),
+      jobTemplateId: form.jobTemplateId,
       bankId: form.bankId ?? 0,
       bankCardOrganization: form.bankCardOrganization ?? 1,
       bankCardTemplateId: form.bankCardTemplateId,

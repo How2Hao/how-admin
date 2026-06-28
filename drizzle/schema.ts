@@ -277,6 +277,7 @@ export const benefitUsagePlatform = mysqlTable('benefit_usage_platform', {
   code: varchar({ length: 50 }).notNull(),
   name: varchar({ length: 50 }).notNull(),
   icon: varchar({ length: 255 }),
+  remark: varchar({ length: 255 }),
   sortOrder: int('sort_order').default(0),
   createdAt: datetime('created_at', { mode: 'string' }).default(sql`(CURRENT_TIMESTAMP)`),
 }, table => [
@@ -322,6 +323,7 @@ export const task = mysqlTable('task', {
   date: bigint({ mode: 'number' }),
   repeatType: mysqlEnum('repeat_type', ['ONE_TIME', 'DAILY', 'WEEKLY', 'MONTHLY', 'YEARLY']).default('ONE_TIME').notNull(),
   reminderTime: varchar('reminder_time', { length: 10 }),
+  expireAt: bigint('expire_at', { mode: 'number' }),
   highPriority: tinyint('high_priority').default(0).notNull(),
   advanceReminderMinutes: smallint('advance_reminder_minutes'),
   status: mysqlEnum(['PENDING', 'EXPIRED', 'COMPLETED']).default('PENDING').notNull(),
@@ -331,6 +333,10 @@ export const task = mysqlTable('task', {
   bankCardLevel: int('bank_card_level'),
   bankCardOrganization: text('bank_card_organization'),
   taskTemplateId: int('task_template_id'),
+  reminderTemplateId: int('reminder_template_id'),
+  sourceJobId: int('source_job_id'),
+  sourceJobOccurrenceId: int('source_job_occurrence_id'),
+  kind: mysqlEnum(['TRACKING', 'REMINDER', 'EXPIRY_REMINDER', 'PIN']),
   benefitCategoryId: int('benefit_category_id'),
   benefitAmount: decimal('benefit_amount', { precision: 10, scale: 2 }),
   benefitVoucherDescription: varchar('benefit_voucher_description', { length: 500 }),
@@ -340,6 +346,9 @@ export const task = mysqlTable('task', {
   updatedAt: datetime('updated_at', { mode: 'string' }).default(sql`(CURRENT_TIMESTAMP)`).notNull(),
 }, table => [
   index('idx_task_user_id').on(table.userId),
+  index('idx_task_reminder_template').on(table.reminderTemplateId),
+  index('idx_task_source_job').on(table.sourceJobId),
+  index('idx_task_source_job_occurrence').on(table.sourceJobOccurrenceId),
   primaryKey({ columns: [table.id], name: 'task_id' }),
 ])
 
@@ -384,6 +393,8 @@ export const taskTemplate = mysqlTable('task_template', {
   ruleBrief: varchar('rule_brief', { length: 500 }),
   ruleDetail: text('rule_detail'),
   ruleSource: json('rule_source'),
+  reminderTemplateId: int('reminder_template_id'),
+  jobTemplateId: int('job_template_id'),
   date: bigint({ mode: 'number' }),
   bankId: int('bank_id').notNull(),
   bankCardOrganization: varchar('bank_card_organization', { length: 255 }),
@@ -445,9 +456,35 @@ export const taskTemplate = mysqlTable('task_template', {
   updatedAt: datetime('updated_at', { mode: 'string' }).default(sql`(CURRENT_TIMESTAMP)`).notNull(),
 }, table => [
   index('idx_activity_category').on(table.activityCategoryId),
+  index('idx_task_template_reminder_template').on(table.reminderTemplateId),
+  index('idx_task_template_job_template').on(table.jobTemplateId),
   index('idx_template_group').on(table.groupId),
   index('idx_task_template_admin_user').on(table.adminUserId),
   primaryKey({ columns: [table.id], name: 'task_template_id' }),
+])
+
+export const reminderTemplate = mysqlTable('reminder_template', {
+  id: int().autoincrement().notNull(),
+  taskTemplateId: int('task_template_id').notNull(),
+  title: varchar({ length: 200 }).notNull(),
+  description: text(),
+  kind: mysqlEnum(['REMINDER', 'EXPIRY_REMINDER']).default('REMINDER').notNull(),
+  repeatType: mysqlEnum('repeat_type', ['ONE_TIME', 'DAILY', 'WEEKLY', 'MONTHLY', 'YEARLY']).default('ONE_TIME').notNull(),
+  date: bigint({ mode: 'number' }),
+  startDate: bigint('start_date', { mode: 'number' }),
+  endDate: bigint('end_date', { mode: 'number' }),
+  daysOfWeek: varchar('days_of_week', { length: 50 }),
+  daysOfMonth: varchar('days_of_month', { length: 200 }),
+  yearlyMonths: varchar('yearly_months', { length: 100 }),
+  yearlyDaysOfMonth: varchar('yearly_days_of_month', { length: 200 }),
+  reminderTime: varchar('reminder_time', { length: 10 }),
+  advanceReminderMinutes: smallint('advance_reminder_minutes'),
+  isVisible: tinyint('is_visible').default(1).notNull(),
+  createdAt: bigint('created_at', { mode: 'number' }).notNull(),
+  updatedAt: datetime('updated_at', { mode: 'string' }).default(sql`(CURRENT_TIMESTAMP)`).notNull(),
+}, table => [
+  index('idx_reminder_template_task_template').on(table.taskTemplateId),
+  primaryKey({ columns: [table.id], name: 'reminder_template_id' }),
 ])
 
 export const taskTemplateLike = mysqlTable('task_template_like', {
@@ -762,4 +799,117 @@ export const plazaCustomTab = mysqlTable('plaza_custom_tab', {
   primaryKey({ columns: [table.id], name: 'plaza_custom_tab_id' }),
   unique('uniq_plaza_custom_tab_code').on(table.code),
   index('idx_plaza_custom_tab_visible_sort').on(table.isVisible, table.sortOrder),
+])
+
+export const jobTemplate = mysqlTable('job_template', {
+  id: int().autoincrement().notNull(),
+  title: varchar({ length: 200 }).notNull(),
+  description: text(),
+  repeatType: mysqlEnum('repeat_type', ['ONE_TIME', 'DAILY', 'WEEKLY', 'MONTHLY', 'YEARLY']).default('ONE_TIME').notNull(),
+  date: bigint({ mode: 'number' }),
+  startDate: bigint('start_date', { mode: 'number' }),
+  endDate: bigint('end_date', { mode: 'number' }),
+  daysOfWeek: varchar('days_of_week', { length: 50 }),
+  daysOfMonth: varchar('days_of_month', { length: 200 }),
+  yearlyMonths: varchar('yearly_months', { length: 100 }),
+  yearlyDaysOfMonth: varchar('yearly_days_of_month', { length: 200 }),
+  /** 档位数组（主存储），至少 1 个元素。length > 1 = 多档。logic 控制金额/笔数的且或关系 */
+  tiers: json('tiers').$type<{
+    minAmount: number | null
+    minCount: number | null
+    logic: 'AND' | 'OR'
+    description: string | null
+  }[]>().notNull(),
+  // 新设计中 job_template 属于一个 task_template，银行/卡/地区维度从 task_template 继承。
+  taskTemplateId: int('task_template_id'),
+  reminderTemplateId: int('reminder_template_id'),
+  rewardWindowRule: json('reward_window_rule').$type<{
+    mode: 'NEXT_MONTH' | 'NEXT_WEEK' | 'AFTER_COMPLETION_DAYS' | 'FIXED'
+    startDay?: number | 'FIRST_DAY'
+    endDay?: number | 'LAST_DAY'
+    weekStartsOn?: number
+    startOffsetDays?: number
+    durationDays?: number
+    startAt?: number
+    endAt?: number
+  }>(),
+  rewardDescription: varchar('reward_description', { length: 500 }),
+  // 兼容旧 admin 页面，后续 job_template 全量迁到 task_template 维度后再物理清理。
+  bankId: int('bank_id'),
+  bankCardTemplateId: int('bank_card_template_id'),
+  regionCode: varchar('region_code', { length: 20 }),
+  regionMatchStrategy: varchar('region_match_strategy', { length: 255 }),
+  adminUserId: int('admin_user_id').default(1).notNull(),
+  isVisible: tinyint('is_visible').default(0).notNull(),
+  createdAt: bigint('created_at', { mode: 'number' }).notNull(),
+  updatedAt: datetime('updated_at', { mode: 'string' }).default(sql`(CURRENT_TIMESTAMP)`).notNull(),
+}, table => [
+  index('idx_job_template_admin_user').on(table.adminUserId),
+  index('idx_job_template_task_template').on(table.taskTemplateId),
+  index('idx_job_template_reminder_template').on(table.reminderTemplateId),
+  index('idx_job_template_bank').on(table.bankId),
+  index('idx_job_template_card').on(table.bankCardTemplateId),
+  primaryKey({ columns: [table.id], name: 'job_template_id' }),
+])
+
+export const job = mysqlTable('job', {
+  id: int().autoincrement().notNull(),
+  userId: int('user_id').notNull().references(() => users.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
+  jobTemplateId: int('job_template_id'),
+  taskTemplateId: int('task_template_id'),
+  sourceType: mysqlEnum('source_type', ['ACTIVITY', 'REPAYMENT']).notNull(),
+  subjectType: mysqlEnum('subject_type', ['TASK_TEMPLATE', 'BANK', 'BANK_CARD']).notNull(),
+  subjectId: int('subject_id').notNull(),
+  title: varchar({ length: 200 }).notNull(),
+  description: text(),
+  repeatType: mysqlEnum('repeat_type', ['ONE_TIME', 'DAILY', 'WEEKLY', 'MONTHLY', 'YEARLY']).default('ONE_TIME').notNull(),
+  status: mysqlEnum(['PENDING', 'IN_PROGRESS', 'COMPLETED', 'EXPIRED', 'ARCHIVED']).default('PENDING').notNull(),
+  createdAt: bigint('created_at', { mode: 'number' }).notNull(),
+  updatedAt: datetime('updated_at', { mode: 'string' }).default(sql`(CURRENT_TIMESTAMP)`).notNull(),
+}, table => [
+  index('idx_job_user_source').on(table.userId, table.sourceType),
+  index('idx_job_subject').on(table.subjectType, table.subjectId),
+  index('idx_job_template').on(table.jobTemplateId),
+  index('idx_job_task_template').on(table.taskTemplateId),
+  primaryKey({ columns: [table.id], name: 'job_id' }),
+])
+
+export const jobRecurring = mysqlTable('job_recurring', {
+  id: int().autoincrement().notNull(),
+  jobId: int('job_id').notNull(),
+  repeatType: mysqlEnum('repeat_type', ['DAILY', 'WEEKLY', 'MONTHLY', 'YEARLY']).default('DAILY').notNull(),
+  daysOfWeek: varchar('days_of_week', { length: 50 }),
+  daysOfMonth: varchar('days_of_month', { length: 200 }),
+  yearlyMonths: varchar('yearly_months', { length: 100 }),
+  yearlyDaysOfMonth: varchar('yearly_days_of_month', { length: 200 }),
+  startDate: bigint('start_date', { mode: 'number' }),
+  endDate: bigint('end_date', { mode: 'number' }),
+  createdAt: bigint('created_at', { mode: 'number' }).notNull(),
+  updatedAt: datetime('updated_at', { mode: 'string' }).default(sql`(CURRENT_TIMESTAMP)`).notNull(),
+}, table => [
+  index('idx_job_repeat_type').on(table.repeatType),
+  primaryKey({ columns: [table.id], name: 'job_recurring_id' }),
+  unique('uniq_job_id').on(table.jobId),
+])
+
+export const jobRecurringOccurrence = mysqlTable('job_recurring_occurrence', {
+  id: int().autoincrement().notNull(),
+  jobId: int('job_id').notNull(),
+  cycleKey: varchar('cycle_key', { length: 64 }).notNull(),
+  occurrenceStartAt: bigint('occurrence_start_at', { mode: 'number' }).notNull(),
+  occurrenceEndAt: bigint('occurrence_end_at', { mode: 'number' }).notNull(),
+  rewardStartAt: bigint('reward_start_at', { mode: 'number' }),
+  rewardEndAt: bigint('reward_end_at', { mode: 'number' }),
+  status: mysqlEnum(['PENDING', 'IN_PROGRESS', 'COMPLETED', 'EXPIRED']).default('PENDING').notNull(),
+  progressAmount: decimal('progress_amount', { precision: 12, scale: 2 }).default('0.00').notNull(),
+  progressCount: int('progress_count').default(0).notNull(),
+  completedAt: bigint('completed_at', { mode: 'number' }),
+  createdAt: bigint('created_at', { mode: 'number' }).notNull(),
+  updatedAt: datetime('updated_at', { mode: 'string' }).default(sql`(CURRENT_TIMESTAMP)`).notNull(),
+}, table => [
+  index('idx_job_occurrence_window').on(table.occurrenceStartAt, table.occurrenceEndAt),
+  index('idx_job_occurrence_reward_window').on(table.rewardStartAt, table.rewardEndAt),
+  index('idx_job_occurrence_status').on(table.status),
+  primaryKey({ columns: [table.id], name: 'job_recurring_occurrence_id' }),
+  unique('uniq_job_occurrence').on(table.jobId, table.cycleKey),
 ])

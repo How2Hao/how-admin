@@ -27,11 +27,15 @@ export default defineHandler(async (event) => {
   const update: Record<string, unknown> = {}
   if (body.name !== undefined) {
     const name = body.name.trim()
-    if (!name) throw createError({ statusCode: 400, statusMessage: 'name 不能为空' })
     if (name.length > 20) throw createError({ statusCode: 400, statusMessage: 'name 不能超过 20 个字符' })
     update.name = name
   }
-  if ('logo' in body) update.logo = body.logo ?? null
+  if ('logo' in body) update.logo = (body.logo ?? '').trim() || null
+
+  // 三形态兼容：更新后 name 与 logo 至少一个有值（纯图片 tab 可不填 name）
+  const finalName = (body.name !== undefined ? body.name.trim() : existing.name) ?? ''
+  const finalLogo = ('logo' in body ? ((body.logo ?? '').trim() || null) : existing.logo)
+  if (!finalName && !finalLogo) throw createError({ statusCode: 400, statusMessage: 'name 与 logo 至少填一个' })
   if (body.templateIds !== undefined) {
     const ids = body.templateIds.filter(v => Number.isInteger(v) && v > 0)
     if (ids.length === 0) throw createError({ statusCode: 400, statusMessage: 'templateIds 不能为空' })

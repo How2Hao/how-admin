@@ -143,6 +143,18 @@ async function handleLogout() {
             </template>
             卡券管理
           </t-menu-item>
+          <t-menu-item value="/job-templates" to="/job-templates">
+            <template #icon>
+              <div i-carbon:task mr-3 />
+            </template>
+            Job 模板
+          </t-menu-item>
+          <t-menu-item value="/reminder-templates" to="/reminder-templates">
+            <template #icon>
+              <div i-carbon:alarm mr-3 />
+            </template>
+            提醒模板
+          </t-menu-item>
           <t-submenu value="users">
             <template #icon>
               <div i-carbon:user-multiple mr-3 />

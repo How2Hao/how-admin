@@ -11,6 +11,7 @@ interface Payload {
   code?: string
   name?: string
   sortOrder?: number
+  remark?: string
   iconBase64?: string
 }
 
@@ -43,6 +44,8 @@ export default defineHandler(async (event) => {
     update.name = body.name.trim()
   if (body.sortOrder !== undefined)
     update.sortOrder = body.sortOrder
+  if (body.remark !== undefined)
+    update.remark = body.remark.trim() || null
 
   if (body.iconBase64?.trim()) {
     const m = /^data:[^;]+;base64,(.+)$/.exec(body.iconBase64)

@@ -12,6 +12,7 @@ import { taskTemplate } from '../../../../../drizzle/schema'
 //  - admin_user_id 写当前操作者
 //  - createdAt 当前时间；updatedAt 由 DB 默认 CURRENT_TIMESTAMP 填
 //  - 其余字段（含 tiers / linkedCoupons / ruleSource 等）整体复用源行
+//  - jobTemplateId 不复制，避免副本和原活动同时指向同一个 job_template
 export default defineHandler(async (event) => {
   const id = Number(event.context.params?.id)
   if (!Number.isInteger(id) || id <= 0) {
@@ -32,6 +33,7 @@ export default defineHandler(async (event) => {
   const insertData = {
     ...rest,
     title: `${src.title}（副本）`,
+    jobTemplateId: null,
     isVisible: 0,
     adminUserId,
     createdAt: Date.now(),

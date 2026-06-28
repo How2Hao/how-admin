@@ -10,6 +10,7 @@ export default defineHandler(async () => {
       code: benefitUsagePlatform.code,
       name: benefitUsagePlatform.name,
       icon: benefitUsagePlatform.icon,
+      remark: benefitUsagePlatform.remark,
       sortOrder: benefitUsagePlatform.sortOrder,
       createdAt: benefitUsagePlatform.createdAt,
     })

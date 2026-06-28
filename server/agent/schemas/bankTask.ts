@@ -58,6 +58,7 @@ export function getBankTemplateSchema() {
     // AI 不需要也不应该填这两个字段（AI 输出时填 null 即可）
     ruleSourceImageUrls: z.array(z.string()).nullable().describe('（admin 表单字段，AI 输出请填 null）'),
     ruleSourceImageBase64s: z.array(z.string()).nullable().describe('（admin 表单字段，AI 输出请填 null）'),
+    jobTemplateId: z.number().int().positive().nullable().optional().describe('（admin 表单字段，AI 输出请填 null）关联的 job_template.id。需要参与条件的活动由运营在 admin 中选择。'),
     benefitCategoryId: z.number().nullable().describe('优惠分类ID。当文章能明确归类为返现、支付立减、电子卡券等时，使用 `get_benefit_category_id` 工具查询；否则填 null。'),
     benefitPayPlatformId: z.number().nullable().describe('支付平台ID。当文章明确支付渠道为微信支付、支付宝、云闪付等时，使用 `get_benefit_platform_id` 工具查询；否则填 null。'),
     benefitUsagePlatformId: z.number().nullable().describe('使用平台ID。当文章明确优惠发生在美团、京东、携程等消费平台时，使用 `get_benefit_usage_platform_id` 工具查询；否则填 null。'),

@@ -5,7 +5,7 @@ import { referenceData } from '~~/agent/utils/referenceData'
 import { db } from '~~/db'
 import { getBankTaskCreateSchema } from '~~/utils/bankCardActivityForm'
 import { buildRuleSourceJson, commitTemplateImages } from '~~/utils/ruleSourceImages'
-import { parseTaskTemplateId, toTemplateMutation } from '~~/utils/taskTemplate'
+import { parseTaskTemplateId, syncTaskTemplateJobTemplate, toTemplateMutation } from '~~/utils/taskTemplate'
 import { taskTemplate } from '../../../../drizzle/schema'
 
 export default defineHandler(async (event) => {
@@ -22,7 +22,10 @@ export default defineHandler(async (event) => {
     })
   }
 
-  const [existing] = await db.select({ id: taskTemplate.id })
+  const [existing] = await db.select({
+    id: taskTemplate.id,
+    jobTemplateId: taskTemplate.jobTemplateId,
+  })
     .from(taskTemplate).where(eq(taskTemplate.id, id)).limit(1)
 
   if (!existing) {
@@ -38,6 +41,7 @@ export default defineHandler(async (event) => {
     ...toTemplateMutation(tpl),
     updatedAt: sql`CURRENT_TIMESTAMP`,
   }).where(eq(taskTemplate.id, id))
+  await syncTaskTemplateJobTemplate(id, existing.jobTemplateId, tpl.jobTemplateId ?? null)
 
   // 编辑路径同样支持新增/删除原图：keptUrls + base64s 合并写到本行 rule_source
   try {
