@@ -1,7 +1,7 @@
 import { eq, sql } from 'drizzle-orm'
 import { defineHandler } from 'nitro'
 import { db } from '~~/db'
-import { bank, bankCard, bankCardTemplate } from '../../../../drizzle/schema'
+import { bank, bankCardTemplate } from '../../../drizzle/schema'
 
 export default defineHandler(async () => {
   const rows = await db

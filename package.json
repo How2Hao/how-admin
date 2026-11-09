@@ -9,6 +9,7 @@
     "lint:fix": "eslint . --fix",
     "typecheck": "vue-tsc",
     "preview": "vite preview",
+    "start": "PORT=3333 HOST=0.0.0.0 node .output/server/index.mjs",
     "test": "vitest",
     "up": "taze major -I",
     "postinstall": "npx simple-git-hooks",
